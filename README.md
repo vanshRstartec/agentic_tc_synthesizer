@@ -1,4 +1,4 @@
-# agentic_tc_generator
+# agentic_tc_synthesizer
 
 ## Setup dependencies
 pip install -r requirements.txt
