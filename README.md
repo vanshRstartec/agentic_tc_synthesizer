@@ -1,5 +1,7 @@
 # agentic_tc_synthesizer
 
+Automates test case generation from user story requirements with high accuracy. Seamlessly uploads them in Azure DevOps Test Plans.
+
 ## Setup dependencies
 pip install -r requirements.txt
 
