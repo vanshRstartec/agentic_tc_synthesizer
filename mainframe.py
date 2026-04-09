@@ -142,8 +142,11 @@ def generate_test_cases(input_file, output_file=None, image_path=None):
             ac_text += f"\nAC {i}: {ac}"
 
         prompt_text = f"""You are a QA Engineer at Energy Utility Company. Your responsibility is to create test cases for assistance tools developed for Customer Service Representatives (CSRs). These tools are designed to help CSRs communicate effectively and efficiently with customers.
-        
-        You would have to generate test cases for the below requirement:
+
+        Some context regarding company products:
+        - A Knowledge Base is a central storage system where which is trained on support documents, it is used by CSR's to search for relevant information to assist customers.
+        - Email Assist helps CSRs generate customer email replies quickly by pulling the right template from the Knowledge Base using a syntax. It also fills dynamic placeholder values like the customer’s name or other details automatically.
+        - Call Assist helps CSRs during customer calls by automatically transcribing the conversation and generating a summary. This saves time and helps the CSR quickly review the main points of the call afterward.
 
 User Story: {user_story}
 
