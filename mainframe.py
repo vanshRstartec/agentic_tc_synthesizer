@@ -205,7 +205,6 @@ Between each test case there should be a line with only --- to separate them.
                 engine=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
                 messages=messages,
                 temperature=0.3,
-                max_tokens=2500  # Increased for multiple ACs
             )
             content = response.choices[0].message.content.strip()
 
@@ -305,7 +304,6 @@ Output:"""
                 {"role": "user", "content": review_prompt}
             ],
             temperature=0.1,
-            max_tokens=500
         )
 
         reviewed_content = review_response.choices[0].message.content.strip()
