@@ -197,13 +197,185 @@
       border: 1px solid #ddd;
       margin-top: 10px;
     }
+
+    /* ── Input Mode Tabs ── */
+    .input-mode-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border: 1px solid #d0d7e3;
+      border-radius: 6px;
+      overflow: hidden;
+      width: fit-content;
+    }
+
+    .input-mode-tab {
+      padding: 9px 22px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: #f8f9fc;
+      color: #555;
+      border: none;
+      border-right: 1px solid #d0d7e3;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+
+    .input-mode-tab:last-child {
+      border-right: none;
+    }
+
+    .input-mode-tab.active {
+      background: #00163a;
+      color: #fff;
+    }
+
+    .input-mode-tab:hover:not(.active) {
+      background: #eaf0ff;
+      color: #00163a;
+    }
+
+    .input-panel {
+      display: none;
+    }
+
+    .input-panel.active {
+      display: block;
+    }
+
+    .ado-credentials-group {
+      background: #f8f9fc;
+      border: 1px solid #e1e5ee;
+      border-radius: 6px;
+      padding: 16px;
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+
+    .ado-credentials-group legend {
+      font-size: 13px;
+      font-weight: 600;
+      color: #00163a;
+      padding: 0 6px;
+      background: #f8f9fc;
+    }
+
+    .ado-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 16px;
+    }
+
+    @media (max-width: 600px) {
+      .ado-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Agentic Flow Summary Card ── */
+    .af-summary {
+      margin-top: 20px;
+      border: 1px solid #b8e1b4;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .af-summary-header {
+      background: #1c602b;
+      color: white;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .af-summary-body {
+      background: #f4fbf5;
+      padding: 18px;
+    }
+
+    .af-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .af-stat {
+      background: white;
+      border: 1px solid #d4edda;
+      border-radius: 6px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .af-stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #00163a;
+      line-height: 1.1;
+    }
+
+    .af-stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .af-detail-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .af-detail-label {
+      font-weight: 600;
+      color: #444;
+      min-width: 90px;
+    }
+
+    .af-detail-value {
+      color: #00163a;
+      font-family: 'Courier New', monospace;
+      background: #e8f0fe;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+
+    .af-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #b6dcff;
+      border-top-color: #084298;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e8ecf4;
+      margin: 18px 0;
+    }
   </style>
 </head>
 
 <body>
   <header>
     <img
-      src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgcAAACwCAMAAACsLz3tAAAAM1BMVEX////88oj/////0z7/8QD////////////86QTzxjX+/PX35n3jvkf/////8QD/0z7ktSNKHMMjAAAADXRSTlMAEDtEVWSDuNHS7f3+PKwR2gAAEGlJREFUeNrtnWuXqywMhQtTSBu19v//2rN6mY4XLkkIOnMkn9513tGqPO5sIODp1KJFixYt/o8w0J5Bi9NXj649hYZB3yO2x9Aw6HscmiAc3Bpc+77vh6EJQsPgwUEThKPnhDcHTRAaBt3QBKFh8OagCcKhrcGHgyYIR8egxycHbVDxyDnhh4PBtsdyaAy+OWiCcGwMvjlognBca/A9fNAEoWHw4aAJwnFzwoyDJghHxqAbmiA0DGYcNEE4qDWYdheaIBwag6keNEE4aE5Y6sFg2nM6KAZzDpog/Odx7UkcNEE4ojWYDx80QTgyBgsOmiAc0BosuwtNEA6LwYqDJgiHc4hhDpogHM4arLsLTRAOisFaD5ogHM0aRPQAmyAcD4MAB4NvT+5IDjHKQROEY1mDxTAS/i5BsNNozVkZgwkHHf4OQTDOA6xFCsB714ioYA0W3YXJf+8nCNavEVgC4f0SBwsKEUDMCI+bB/0S1ne2EQYzDvq9HYLxOFADwNnPVdpBIQIt4CjHZVeGMq8DwWk9fnPrhgGxewadg30FwYC46Wpx4ElEKnPwPKdXQeF8u83Gh/DNRLK70O8rCAwt2IwDEplYgYMHCgoZ4nK73W6xy57JxM/Dx35PQbAgeVamMge8q9DlQIGEr9szujzKOOegp0OuG072pCr7A+JpXSUOhqEwO5xvVBAm0c3twqb7YnjZY8LKHBAvy1fjYMAiSbh9x8jlYCIIG47eeKlwVuYAmJehz8FQstft+fYTyOSgW43evIZvzO9LCvU54NqUChyUCPNlwgE9N3TBcsVZjx38Y6BDWyYMitNnXQ6sUlOVXZY4NZjbLKi5IVqPEBzqeMuEBhMw/FIOPPs6anAg7sOfb4tADge9WJy3zgqTlqvDARlQrMqB9AlflhzQckNiIjp5kaXOAX8tB/Qrq8uBzCJ83dYxMjjoN1WDoiasy4EtQEiXA1RJC7TcgL1EEFw9d4DwNCCvcN57AMDIa1iFA0bC8nU5ED3mWzi6Vat3XTcZT+x6viCggk2MdZtjpzZPKJ5IYF0OICZ+wFTF4DzSOgA1BeEc4WCZGxbTjtM5KKogaMyE2ILBEys6PciNi48KBZcDGym+QFHiobnESG5IzEfjdN6hnkOM9c1Qb4SigAMblWfLbCdGu8bm3tk2zNwS0UUcwTzu71ilDmWHGLUHigNVBRy4+Lgh0yCwbtHpJIZzioN0blhgMI2+hkOM9c0019EUcJBwAUyDwEPdqSSGyy0d2dwQxACrSXddOSjhAONHet77yrxHUOgxfN1ykckNIQw6dYdorIs+I9XKBzkHJtEWjtewTA6C8y1eMy3kc0MIA9R1iMY9XDGU+/m6HKTa2vDeV67m+XI3dqNENDfciRiw7gHmEMDsX38vB5ASKp5B4HJgi43imcRBLDfQrEE6VSU5cLD8V/tr80ISf2BdNdsDIXsKg+kSk7mB1lHIOMQ4B/PFCXEOVPdfEHNgkimaZxDYHEAhB+ZGjnVu0HGIMQ6W9cgJDn5FvzHd0jyDwObAF/aiznQOVrlBySGGOVhXpUNieuE3jCP59BvJMk3sW7SFD+XC4GCRG/pihxjnILQ2IcUBuv05yNw7yyBszcHXjReY5oDpEKMcQGpUGupNXZRwYDI9eM+xNVtzcGZyMM0NawxGlIwhUmv6IPP3YHflwGUMgOUYBHarujIOLlwOxgQH49hJWobLQbzYI16CsAEH2fedc14Vn2jqycGY0INxHOeCQJRqLgcm+UfFC8ClHGTzP8cgbNxv5MrBtFuIAQxmgkAd3+ZykCsKLkRBykH2MI5B2HYcybAxmDhBDGAwFQSyg2dzkC8pg4IEIeQgn/4dwyBwOTBFgypnNgYTDroABVNBgGockFYJgLebcuCzLZfrUOw3z8QbPHg2+BDioOs+HEwEwVTjgFhjiiIUhBwQsj9jcEVj3tlVSQsvDIIcPDQgIAjV/AFj+ZgABSEHhKOAbhCYHPiiMdYzMyfMOejng0fdShCoi+wEHHAWOILbggNLEH2GQVCoS8MaaSEwmdgv/qWTCgKFA1g4P9YGWcjaI0TGgSc0nKUbBBYHFouKgs98DKYcrKcXhYKQ4QCDjo+3UxqHBBkHQOm2Ifml5XDgCtcvXJjWYNHsgVnmTiQIPsWA45btR4ca63JA8oAkWJgcOCxcz2TYYrDmYFls0EkEwUcZSB/ueMueqdMPIg5oku/JrRuy/3YVPrGTrNNOC5EqEwxOLw4CQfDS3r+tIgkiDmgWkG4QhtJQd4mxieXuHl7c+pCEgSUIXp7bLE8SXDUOiF1C8qmLObDKaSFaYNDF1jh3XEHwJTMkvOTganFAdIBkg1CKgfKY8pgvNBlCuYElCEUcMLODq8MB9Riy9JVmBaOaFtaVJrTL6Fh7axZywNpznfCAJBxQR4gc1SAUYmBV5eAu5WDoOH6lmIPkNgAa1h8E9sASpwWhAgeMEdSLCIOe0PLsa9LggPQ5Dtrsl4QDpN4CdSRpKwyMCIM4B+OqJo0uCEocvJbAZWXBV+CA/JqThaMkKXDmU85shxhZpDIZUe6EdOpxQJEFrMABOe2TjcQm3oCQFu53BgefqUbZg9flYLoyVtSzFnAA5F+hnlzeYWTV5BkZBmEOJkUonUQQ1DlIdyG8PgdYUliAihxw9xpJp4VLDIPg8MEEgzAIuAMHiREmUOfAMI4gSkf10WRCWohjEJtQmIKAbEGoxEGMBFTnwIUmtSIBtMezQVchJwdjHIN7FoPlEgbKk6/GQWT6QZ0DPxQFKHIAanJwvzM46MZAdExK63EQBsFoc4BlHKCmT+TYRCPFoKdgEMgNsBcHkm0B2ByY0kkhI6xDAcnwCC0t3DkcRDAI5Aa7FwdmAw5cKQdOyEHppkgXiTVYczAmomM8yJochDRbmwNfygFI69KKVi3E00IOg/nwwZiMRW6we3EA9TmAUg5QykHZKqazKCcsOOjGXCD16v46B8W1QwGDQOPAFjnFixSDaTXSmI+O+PD/OAcKH3JwQg6KnOJZjMEPBxQM5rkBduKg/viBL+fASzlwBU7xIrIGMw5GaiDlLazJga3PAZRzAFIOjHxM0UjF4DOMhCM9KMvgNx4/0J5fGIYKBoHa3QWxUzzLMbizMZiCYHfgwGB1DlS+8+SkHMid4kWOQU+3BoHcADtwAALZZHLgNTjwUg5O0g33jRyDBwfIxuBHEszmHMAGdSigwQGKOQChUzzLHOJ7+ECCwQcEUOPAkD4SHV4Jq12XhhocDGIOrNApXqRi8OAAR2FgShC8yNLj47Phia+GxyqSlOtUQ18BsJkgjGnQdQxFTvFcgMG1H8XRJS6Pz8H8iOeH5P3zCX/LhYsXq1pdDpygFXyeTvqFO5FTvEgxuI5l0cUvr5QD5UINHgcgUGUCO3QOrET0jAiDUgY+uQGUOCjwZlaZAxT8hMkbBMaVS5zime0Qr/dRK7qIIPA5wIpywOPAiNx6Hh4GB07gFC8sMVBk4A0C6HAg758ZZQ6cCDXIKjlHyfhO0TAwuI4VIlhfz+ZAPoSnvv8BiH4jTw+HA2A7xTOlNr0OA9fr9evr68vsygFpSpbFgcQeULIJhwO+U7wQMNBMBu/G/2K7/zrdBdoEDIcDguOT4cNyuMh0iuecQ1RhgNb4O3BALNDgcOCEsGXTCYsDz0yBl6Q1uG7a+CUcQDVvwOUAhLRl+WFxYHjiZ+IYXDdv/K05oH+8qZADK/wNlHPAdIrnMAbMZKDU+CUcCPqLjOUdDA6MuEw01848DhwrDV7W1oDKgH7jF+kBdxwJKu2zLbUHeYPA48BwnKJZYnDds/EL6w9SM0krLeBtCsDgwIvNaK5ejjkiDgxDdJ7mhGuu8c1psxDXoVjrIUMDQs3vcIDYjeYMApMDy3CKl28M1slgh8bXi+cscyhVADh7arGWgzkDf7rxgzxY6/w7rG0IRORgfCSD/63xW7D1oDV+ixYtWrRo0aJFixYtWrRo0aJFixYtWiTDvCYdnLXm11yM8uTH5xZ5f7/dJIyxr1kfl/pFS14MHv1j6qLnyFdifXSrqshpIbgqJjdhbqeTopCcoPb0SobZLeY+hbx+JAjesa+B1QrLhecYufWKHHjaX0o5WByU5mC1GwNaBQ7M8hYzX2cynlxpr8RB4OMHfmMOqFWkYg6QzoFlfZeCykFoqw9g/n1dDhx9Rw//CXhq9ydiV+CXYRNqgK9s/CxOANDj4CnyjsrBu4LwVRljvr826Uo5gNBZffbvX4/EPOs1AIUckFrBTi7w84tZV5K/fUuvWns9ekqdmIgD70I1hckGmDyAlz6jKePALyvyXyIcfc5uYHzDKccB6SQwsD8So82BJ1+CjIPncjJLO8CsBdulXl0aB0/S57XYNpkZkPPpZw0OzMD8JEQFDpBcRS7kwC9+IHPAsgEg0Sg0Dlzg5feJNRSOvM5GiwM7MD8Ro8+BpSuSkIPn62hIB2DgF1IXSOMAAqQbjB8KrG35NThw7E9GqXPg6VtOCzlYPtf4AeHXAtJbh2U5MMHXO3FWXq7W4MDvzwEDfikHZt686S4YcEglceCCPxh/QkyR1tID3J8DX5eDxW/EDwhfixX13XN02WRXHk+bcvAL/AFDBMUc2NmTTXPgiLpO5yBCOsZunCnSav0F2J0DW5mDeQPHD4hcSx0OokII23OwGjf5TzmYSS2bg7i1J3PgmBz4jTmworXGRA7mw5mGYaYTiXa1CzKFg9lYEpsDKOMgcVbYgANKK0znF8A7o8sBeR9yQ/9Z8kzX/IlOO8hpo37aigO/EQfU3dymU1tAQ0Gbg1N1Dk6TsaQ/xgGozjcmpHdWd0Hak+QPcjB56o2D+DjCZNcSwjyXok+02/iD6eBy9ADzX3LA7Qxa99aF/EzXn+svzP57a5+IZT7RwyO24+DxQrzmxf3/yIH5EC7qN7ptxw88/S4rcPCWT/wfOfjpxscPiDT4xuNIwYSxMQe0fpwmB7jBuPLnkvAknV8o4CBiBJJlmLg3B6T386/NM80FgTvfWDrPFJ43sulvfpqjceDrzztP2gOSB4RbrLT+ICyxLt1tcUfjwNEHFAs5+Dbu8QOCLZCYXiDWIwVPkKALIh+G25IDs7U/YEx5lnLwFoRcoXsIVFvCQajCMVXtFno1tubAbd1feI2T2C04eI8lJQ5w69ZJ9qBoHASKk02q+tVEPgC0db8RNuXAkIv1Szl4nyB1aau1FDZZ2U9cvwDLhn2tV/KpG10M8G/LgaG9nEQOVkPAqe+Dwuf/PrZjtlU4eI4lJR+OfS8+fF+L8+klaKGR7tBZ8XXW9/97L2iKj9u+lvb8FAMY6+QckFrhtch5PpwIJyUOiJMcP4v58LMddx0Ofsbq07b1/RVizE69eeKyxdBZUxL4WWWJkwNqrm8MNIHePBN5xTVUXOfqVzkoLZbrdb+JGVgqB4Hls+kisNA3xmtyIPswjjIH69vGShx8uE/lxsVeDDbzIKjfApndIuQ/Lg2rbelr6gGwluV/8lVuiw5jQ5Hoj5rHAtvvL8InTro+ReJa1vnaxJP4/GKek3zZrUtCt0m4RdqWL99/D9PczWoMVisY+1jR/vq5tsN3ixYt0vEPO0G44Tyjr7YAAAAASUVORK5CYII="
+      src="data:image/png;base64,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"
       alt="Company Logo">
     <h1>AI-Powered Functional Test Case Synthesizer​</h1>
   </header>
@@ -220,20 +392,17 @@
             Technologies</strong> – your AI-powered assistant for fast, smart, and structured test case generation.
           Follow these steps to make the most out of the tool:</p>
 
-        <h4 style="font-size: 1.15em; margin-top: 25px; margin-bottom: 12px;">📁 Step 1: Download Excel Template &
-          Prepare Your Input Excel File</h4>
+        <h4 style="font-size: 1.15em; margin-top: 25px; margin-bottom: 12px;">📁 Step 1: Provide Your Input</h4>
         <ul style="margin-left: 20px; margin-bottom: 25px; line-height: 1.8;">
-          <li><strong>User Story</strong> – e.g., "As a user, I want to reset my password via email."</li>
-          <li><strong>Acceptance Criteria</strong> – e.g., "User should receive a reset link when a valid email is
-            entered."</li>
-          <li>Feel free to enter more columns such as pre conditions etc, the generation will take in those for
-            consideration as well</li>
+          <li><strong>Excel Upload:</strong> Download the template, fill in User Story and Acceptance Criteria columns, then upload.</li>
+          <li><strong>ADO Story ID:</strong> Enter your Azure DevOps Work Item ID along with organisation, project, and PAT — the tool will fetch the story and acceptance criteria automatically.</li>
+          <li>Optionally attach a design reference image (Figma screenshot) for UI-aware test cases.</li>
         </ul>
 
         <h4 style="font-size: 1.15em; margin-top: 25px; margin-bottom: 12px;">⚙️ Step 2: Generate Test Cases</h4>
         <ul style="margin-left: 20px; margin-bottom: 25px; line-height: 1.8;">
-          <li>Upload Excel and add design reference (optional) → Generate Test Cases → View results below.</li>
-          <li>Download the excel and make any changes if required maintaining the same format.</li>
+          <li>Choose your input mode → Generate Test Cases → View results below.</li>
+          <li>Download the Excel and make any changes if required maintaining the same format.</li>
         </ul>
 
         <h4 style="font-size: 1.15em; margin-top: 25px; margin-bottom: 12px;">☁️ Step 3: Upload to Azure DevOps</h4>
@@ -259,21 +428,70 @@
     <details open>
       <summary>⚙️ Generate Test Cases</summary>
       <div class="section-content">
-        <div class="form-group">
-          <label>Upload Input Excel File</label>
-          <input type="file" id="generateFile" accept=".xlsx">
+
+        <!-- Input Mode Tabs -->
+        <div class="input-mode-tabs">
+          <button class="input-mode-tab active" id="tab-excel" onclick="switchTab('excel')">📄 Excel Upload</button>
+          <button class="input-mode-tab" id="tab-ado" onclick="switchTab('ado')">🔗 ADO Story ID</button>
         </div>
 
-        <div class="checkbox-group">
-          <input type="checkbox" id="imageCheckbox" onchange="toggleImageField()">
-          <label for="imageCheckbox">Include Design Reference</label>
+        <!-- ── Excel Panel ── -->
+        <div class="input-panel active" id="panel-excel">
+          <div class="form-group">
+            <label>Upload Input Excel File</label>
+            <input type="file" id="generateFile" accept=".xlsx">
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="imageCheckboxExcel" onchange="toggleImageField('excel')">
+            <label for="imageCheckboxExcel">Include Design Reference (optional)</label>
+          </div>
+
+          <div class="form-group" id="imageGroupExcel">
+            <label>Design Reference Image</label>
+            <input type="file" id="designImageExcel" accept="image/*" disabled>
+            <small style="color: #666; display: block; margin-top: 5px;">Supported formats: JPG, PNG, GIF, WebP</small>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Image</label>
-          <input type="file" id="designImage" accept="image/*" disabled>
-          <small style="color: #666; display: block; margin-top: 5px;">Supported formats: JPG, PNG, GIF, WebP</small>
+        <!-- ── ADO Panel ── -->
+        <div class="input-panel" id="panel-ado">
+          <div class="form-group">
+            <label>ADO User Story ID</label>
+            <input type="text" id="adoStoryId" placeholder="e.g., 12345">
+          </div>
+
+          <fieldset class="ado-credentials-group">
+            <legend>🔐 ADO Credentials</legend>
+            <div class="ado-grid">
+              <div class="form-group">
+                <label>Organisation</label>
+                <input type="text" id="adoOrg" placeholder="e.g., exelontfs">
+              </div>
+              <div class="form-group">
+                <label>Project</label>
+                <input type="text" id="adoProject" placeholder="e.g., Gen AI Platform">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>PAT Token</label>
+              <input type="text" id="adoPat" placeholder="Your Azure DevOps PAT">
+            </div>
+          </fieldset>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="imageCheckboxAdo" onchange="toggleImageField('ado')">
+            <label for="imageCheckboxAdo">Include Design Reference (optional)</label>
+          </div>
+
+          <div class="form-group" id="imageGroupAdo">
+            <label>Design Reference Image</label>
+            <input type="file" id="designImageAdo" accept="image/*" disabled>
+            <small style="color: #666; display: block; margin-top: 5px;">Supported formats: JPG, PNG, GIF, WebP</small>
+          </div>
         </div>
+
+        <hr class="divider">
 
         <div class="btn-group">
           <button id="generateBtn" onclick="generateTestCases()">Generate Test Cases</button>
@@ -281,6 +499,40 @@
         </div>
         <div id="generateResponse"></div>
         <div id="testCasesContainer"></div>
+      </div>
+    </details>
+
+    <!-- Agentic Flow Section -->
+    <details>
+      <summary>⚡ Agentic Flow — Auto Generate &amp; Upload</summary>
+      <div class="section-content">
+        <p style="margin-bottom: 20px; color: #555; font-size: 14px; line-height: 1.6;">
+          Provide a single ADO Story ID and credentials — the tool will automatically generate test cases
+          and upload them to Azure DevOps in one click. A test plan named after the story and a
+          <strong>TCS</strong> suite will be created automatically.
+        </p>
+
+        <div class="ado-grid">
+          <div class="form-group">
+            <label>ADO User Story ID</label>
+            <input type="text" id="af-storyId" placeholder="e.g., 12345">
+          </div>
+          <div class="form-group">
+            <label>Organisation</label>
+            <input type="text" id="af-org" placeholder="e.g., exelontfs">
+          </div>
+          <div class="form-group">
+            <label>Project</label>
+            <input type="text" id="af-project" placeholder="e.g., Gen AI Platform">
+          </div>
+          <div class="form-group">
+            <label>PAT Token</label>
+            <input type="text" id="af-pat" placeholder="Your Azure DevOps PAT">
+          </div>
+        </div>
+
+        <button id="af-runBtn" onclick="runAgenticFlow()">⚡ Run Agentic Flow</button>
+        <div id="af-response"></div>
       </div>
     </details>
 
@@ -308,11 +560,26 @@
   <script>
     const API_BASE = 'http://localhost:5000';
     let generatedFilename = null;
+    let activeTab = 'excel';  // track current tab
 
-    function toggleImageField() {
-      const checkbox = document.getElementById('imageCheckbox');
-      const imageInput = document.getElementById('designImage');
+    // ── Tab switching ──────────────────────────────────────────
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.input-mode-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.input-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.getElementById('panel-' + tab).classList.add('active');
 
+      // Clear previous results when switching
+      document.getElementById('generateResponse').innerHTML = '';
+      document.getElementById('testCasesContainer').innerHTML = '';
+      document.getElementById('downloadBtn').disabled = true;
+    }
+
+    // ── Design Reference toggle (works for both tabs) ──────────
+    function toggleImageField(mode) {
+      const checkbox = document.getElementById('imageCheckbox' + (mode === 'excel' ? 'Excel' : 'Ado'));
+      const imageInput = document.getElementById('designImage' + (mode === 'excel' ? 'Excel' : 'Ado'));
       if (checkbox.checked) {
         imageInput.disabled = false;
       } else {
@@ -321,13 +588,23 @@
       }
     }
 
+    // ── Main generate dispatcher ────────────────────────────────
     async function generateTestCases() {
+      if (activeTab === 'excel') {
+        await generateFromExcel();
+      } else {
+        await generateFromAdo();
+      }
+    }
+
+    // ── Generate from Excel ─────────────────────────────────────
+    async function generateFromExcel() {
       const fileInput = document.getElementById('generateFile');
       const responseDiv = document.getElementById('generateResponse');
       const downloadBtn = document.getElementById('downloadBtn');
       const container = document.getElementById('testCasesContainer');
-      const imageCheckbox = document.getElementById('imageCheckbox');
-      const designImage = document.getElementById('designImage');
+      const imageCheckbox = document.getElementById('imageCheckboxExcel');
+      const designImage = document.getElementById('designImageExcel');
 
       downloadBtn.disabled = true;
       container.innerHTML = '';
@@ -337,36 +614,29 @@
         return;
       }
 
-      // Validate image if checkbox is checked
-      if (imageCheckbox.checked) {
-        if (!designImage.files[0]) {
-          responseDiv.innerHTML = '<div class="response error">Please upload a design image</div>';
-          return;
-        }
+      if (imageCheckbox.checked && !designImage.files[0]) {
+        responseDiv.innerHTML = '<div class="response error">Please upload a design image or uncheck the option</div>';
+        return;
       }
 
       const formData = new FormData();
       formData.append('file', fileInput.files[0]);
-
-      // Add image only if checkbox is checked and image is selected
       if (imageCheckbox.checked && designImage.files[0]) {
         formData.append('image', designImage.files[0]);
       }
 
       try {
-        responseDiv.innerHTML = '<div class="response info">Generating test cases...</div>';
-        const res = await fetch(`${API_BASE}/generate`, { method: 'POST', body: formData });
+        responseDiv.innerHTML = '<div class="response info">⏳ Generating test cases from Excel…</div>';
+        const res = await fetch(`${API_BASE}/generate_excel`, { method: 'POST', body: formData });
         const data = await res.json();
 
         if (data.status === 'success') {
           generatedFilename = data.filename;
           responseDiv.innerHTML = `<div class="response success">
-          ✅ Success! Generated ${data.count} test cases.<br>
-          Filename: <strong>${data.filename}</strong>
-        </div>`;
+            ✅ Success! Generated ${data.count} test cases.<br>
+            Filename: <strong>${data.filename}</strong>
+          </div>`;
           downloadBtn.disabled = false;
-
-          // Fetch and display test cases
           await fetchAndShowTestCases(data.filename);
         } else {
           responseDiv.innerHTML = `<div class="response error">❌ ${data.message}</div>`;
@@ -376,15 +646,57 @@
       }
     }
 
+    // ── Generate from ADO Story ID ──────────────────────────────
+    async function generateFromAdo() {
+      const storyId = document.getElementById('adoStoryId').value.trim();
+      const org = document.getElementById('adoOrg').value.trim();
+      const project = document.getElementById('adoProject').value.trim();
+      const pat = document.getElementById('adoPat').value.trim();
+      const responseDiv = document.getElementById('generateResponse');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const container = document.getElementById('testCasesContainer');
+
+      downloadBtn.disabled = true;
+      container.innerHTML = '';
+
+      if (!storyId || !org || !project || !pat) {
+        responseDiv.innerHTML = '<div class="response error">Please fill in Story ID, Organisation, Project, and PAT Token</div>';
+        return;
+      }
+
+      try {
+        responseDiv.innerHTML = `<div class="response info">⏳ Fetching ADO story #${storyId} and generating test cases…</div>`;
+        const res = await fetch(`${API_BASE}/generate_ado`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ story_id: storyId, org, project, pat })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          generatedFilename = data.filename;
+          responseDiv.innerHTML = `<div class="response success">
+            ✅ Success! Generated ${data.count} test cases from ADO Story #${storyId}.<br>
+            Filename: <strong>${data.filename}</strong>
+          </div>`;
+          downloadBtn.disabled = false;
+          await fetchAndShowTestCases(data.filename);
+        } else {
+          responseDiv.innerHTML = `<div class="response error">❌ ${data.message}</div>`;
+        }
+      } catch (e) {
+        responseDiv.innerHTML = `<div class="response error">❌ ${e.message}</div>`;
+      }
+    }
+
+    // ── Shared: fetch and render test cases table ───────────────
     async function fetchAndShowTestCases(filename) {
       const container = document.getElementById('testCasesContainer');
-      container.innerHTML = '<div class="response info">📄 Loading test cases...</div>';
+      container.innerHTML = '<div class="response info">📄 Loading test cases…</div>';
 
       try {
         const res = await fetch(`${API_BASE}/get-test-cases?filename=${encodeURIComponent(filename)}`);
         const text = await res.text();
-
-        // Replace invalid NaN tokens
         const safeText = text.replace(/\bNaN\b/g, 'null');
         const data = JSON.parse(safeText);
 
@@ -399,11 +711,9 @@
           return;
         }
 
-        // Build table
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');
-
         const columns = Object.keys(testCases[0]);
         thead.innerHTML = '<tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
 
@@ -414,7 +724,6 @@
             if (value === null || value === undefined || String(value).toLowerCase() === 'nan') {
               value = '';
             } else if (c === 'Steps') {
-              // add one blank line between steps
               value = String(value).replace(/\n/g, '<br><br>');
             }
             return `<td>${value}</td>`;
@@ -424,15 +733,12 @@
 
         table.appendChild(thead);
         table.appendChild(tbody);
-
-        container.innerHTML = `<h4 style="margin-top:20px;">📋 Generated Test Cases</h4>
-                           <div class="table-container"></div>`;
+        container.innerHTML = `<h4 style="margin-top:20px;">📋 Generated Test Cases</h4><div class="table-container"></div>`;
         container.querySelector('.table-container').appendChild(table);
       } catch (e) {
         container.innerHTML = `<div class="response error">❌ ${e.message}</div>`;
       }
     }
-
 
     function downloadGeneratedFile() {
       if (!generatedFilename) return;
@@ -476,6 +782,83 @@
         </div>`;
       } catch (e) {
         resDiv.innerHTML = `<div class="response error">❌ ${e.message}</div>`;
+      }
+    }
+    // ── Agentic Flow ────────────────────────────────────────────
+    async function runAgenticFlow() {
+      const storyId = document.getElementById('af-storyId').value.trim();
+      const org = document.getElementById('af-org').value.trim();
+      const project = document.getElementById('af-project').value.trim();
+      const pat = document.getElementById('af-pat').value.trim();
+      const resDiv = document.getElementById('af-response');
+      const btn = document.getElementById('af-runBtn');
+
+      if (!storyId || !org || !project || !pat) {
+        resDiv.innerHTML = '<div class="response error">Please fill in Story ID, Organisation, Project, and PAT Token</div>';
+        return;
+      }
+
+      btn.disabled = true;
+      resDiv.innerHTML = `<div class="response info">
+        <span class="af-spinner"></span>
+        Running agentic flow for story <strong>#${storyId}</strong>…
+        <br><small style="margin-top:6px;display:block;">Step 1 of 3: Fetching story from ADO &amp; generating test cases (this may take a minute)…</small>
+      </div>`;
+
+      try {
+        const res = await fetch(`${API_BASE}/agentic_flow`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ story_id: storyId, org, project, pat })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          const failBadge = data.failed_count > 0
+            ? `<span style="color:#842029;font-size:13px;margin-left:8px;">⚠️ ${data.failed_count} failed</span>`
+            : '';
+          resDiv.innerHTML = `
+            <div class="af-summary">
+              <div class="af-summary-header">✅ Agentic Flow Complete — Story #${data.story_id}</div>
+              <div class="af-summary-body">
+                <div class="af-summary-grid">
+                  <div class="af-stat">
+                    <div class="af-stat-value">${data.generated_count}</div>
+                    <div class="af-stat-label">Test Cases Generated</div>
+                  </div>
+                  <div class="af-stat">
+                    <div class="af-stat-value" style="color:#1c602b;">${data.uploaded_count}</div>
+                    <div class="af-stat-label">Uploaded to ADO${failBadge}</div>
+                  </div>
+                </div>
+                <div class="af-detail-row">
+                  <span class="af-detail-label">Story</span>
+                  <span class="af-detail-value">${data.story_title}</span>
+                </div>
+                <div class="af-detail-row">
+                  <span class="af-detail-label">Test Plan</span>
+                  <span class="af-detail-value">${data.plan_name}</span>
+                </div>
+                <div class="af-detail-row">
+                  <span class="af-detail-label">Suite</span>
+                  <span class="af-detail-value">${data.suite_name}</span>
+                </div>
+                <div class="af-detail-row">
+                  <span class="af-detail-label">Output File</span>
+                  <span class="af-detail-value">${data.filename}</span>
+                </div>
+                <div style="margin-top:14px;">
+                  <button onclick="window.location.href='${API_BASE}/download?filename=${encodeURIComponent(data.filename)}'">⬇️ Download Generated TCS</button>
+                </div>
+              </div>
+            </div>`;
+        } else {
+          resDiv.innerHTML = `<div class="response error">❌ ${data.message}</div>`;
+        }
+      } catch (e) {
+        resDiv.innerHTML = `<div class="response error">❌ ${e.message}</div>`;
+      } finally {
+        btn.disabled = false;
       }
     }
   </script>

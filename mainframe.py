@@ -1,9 +1,9 @@
-import re
+import re, os, ast, base64
+from datetime import datetime
+from pathlib import Path
 
 import openai
 import pandas as pd
-import os
-import ast
 import requests
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
@@ -14,383 +14,336 @@ openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
 openai.api_version = "2024-02-15-preview"
 openai.api_key = os.getenv("AZURE_OPENAI_KEY")
 
+_PROMPTS_DIR = Path(__file__).parent / "prompts"
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _load_prompt(filename: str) -> str:
+    return (_PROMPTS_DIR / filename).read_text(encoding="utf-8")
+
+def _strip_html(text: str) -> str:
+    return re.sub(r"<[^>]+>", "", str(text)).strip()
+
+def _load_image_b64(image_path: str) -> str:
+    if not image_path:
+        return None
+    try:
+        return base64.b64encode(Path(image_path).read_bytes()).decode()
+    except Exception as e:
+        print(f"⚠️ Could not load image {image_path}: {e}")
+        return None
+
+def _llm(messages: list, temperature: float = 0.3) -> str:
+    r = openai.ChatCompletion.create(
+        engine=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
+        messages=messages,
+        temperature=temperature,
+    )
+    return r.choices[0].message.content.strip()
+
+def _save_output(tcs: list, path: str = None) -> str:
+    os.makedirs("output", exist_ok=True)
+    path = path or f"output/{datetime.now().strftime('%Y%m%d_%H%M%S')}_generated_tcs.xlsx"
+    df = pd.DataFrame(tcs)
+    df.insert(0, "S.No.", range(1, len(df) + 1))
+    df.to_excel(path, index=False)
+    print(f"✅ Saved {len(df)} test cases → {path}")
+    return path
+
+
+# ── ADO Story Fetcher ────────────────────────────────────────────────────────
+
+def _fetch_ado_story(story_id, org, project, pat) -> dict:
+    url = f"https://dev.azure.com/{org}/{project}/_apis/wit/workitems/{story_id}?$expand=all&api-version=7.0"
+    r = requests.get(url, headers={"Content-Type": "application/json"}, auth=HTTPBasicAuth("", pat))
+    if r.status_code != 200:
+        raise Exception(f"ADO API error {r.status_code}: {r.text}")
+    f = r.json().get("fields", {})
+    return {
+        "id": story_id,
+        "title": f.get("System.Title", "").strip(),
+        "description": _strip_html(f.get("System.Description", "") or ""),
+        "acceptance_criteria": _strip_html(f.get("Microsoft.VSTS.Common.AcceptanceCriteria", "") or ""),
+    }
+
+
+# ── Agent 1: Generate ────────────────────────────────────────────────────────
+
+def _agent1_generate(user_story: str, ac_text: str, extra_context: str = "", image_b64: str = None) -> str:
+    prompt = _load_prompt("agent1_generate.txt").format(
+        user_story=user_story,
+        acceptance_criteria=ac_text,
+        extra_context=extra_context,
+        figma_instruction=(
+            "Use the provided Figma screenshot for UI reference. "
+            "Include UI test cases to verify content and layout only."
+        ) if image_b64 else "",
+    )
+    user_msg = (
+        [{"type": "text", "text": prompt},
+         {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}}]
+        if image_b64 else prompt
+    )
+    return _llm([
+        {"role": "system", "content": "You are a QA engineer. Generate test cases in the EXACT format requested."},
+        {"role": "user", "content": user_msg},
+    ])
+
+
+# ── Parser ───────────────────────────────────────────────────────────────────
+
+def _parse_tcs(content: str, user_story: str, ac_text: str) -> list:
+    result = []
+    for block in content.split("---"):
+        if "Title:" not in block:
+            continue
+        lines = block.strip().splitlines()
+        get = lambda key: next((l.split(key, 1)[1].strip() for l in lines if l.startswith(key)), None)
+
+        priority = 2
+        try:
+            p = int(get("Priority:") or 2)
+            priority = p if p in (1, 2, 3, 4) else 2
+        except (ValueError, TypeError):
+            pass
+
+        raw, in_block = [], False
+        for line in lines:
+            if line.strip().startswith("```"):
+                in_block = not in_block
+                continue
+            if in_block:
+                raw.append(line)
+
+        steps_str = "\n".join(raw).strip()
+        formatted = []
+        try:
+            if not steps_str.startswith("["):
+                steps_str = f"[{steps_str}]"
+            for s in ast.literal_eval(steps_str):
+                if isinstance(s, dict) and "action" in s and "expected" in s:
+                    formatted.append(f"{s['action']} -> {s['expected']}")
+        except Exception:
+            formatted = [steps_str] if steps_str else []
+
+        result.append({
+            "User Story": user_story,
+            "Acceptance Criteria": ac_text,
+            "Test Type": get("Test Type:") or "Functional",
+            "Title": get("Title:") or "Test Case",
+            "Priority": priority,
+            "Steps": "\n".join(formatted),
+            "Status": "Not Executed",
+            "Comments": "",
+        })
+    return result
+
+
+# ── Agent 2: Review ──────────────────────────────────────────────────────────
+
+def _agent2_review(tcs: list) -> list:
+    if not tcs:
+        return tcs
+    numbered = "\n".join(
+        f"{i}. Title: {tc['Title']}\n   Steps:\n{tc['Steps']}"
+        for i, tc in enumerate(tcs, 1)
+    )
+    response = _llm([
+        {"role": "system", "content": "You are a QA Review Agent. Return only the numbers to keep."},
+        {"role": "user", "content": _load_prompt("agent2_review.txt").format(test_cases=numbered)},
+    ], temperature=0.1)
+
+    keep = {int(n) for n in re.findall(r"\d+", response) if 1 <= int(n) <= len(tcs)}
+    if not keep:
+        print("⚠️ Review returned no valid indices — keeping all.")
+        return tcs
+    print(f"✅ Review: kept {len(keep)}, removed {len(tcs) - len(keep)}.")
+    return [tc for i, tc in enumerate(tcs, 1) if i in keep]
+
+
+# ── Core pipeline ────────────────────────────────────────────────────────────
+
+def _run_pipeline(user_story: str, ac_text: str, extra_context: str = "", image_b64: str = None) -> str:
+    print("🤖 Agent 1: Generating...")
+    tcs = _parse_tcs(_agent1_generate(user_story, ac_text, extra_context, image_b64), user_story, ac_text)
+    print(f"📋 Parsed {len(tcs)} test cases.")
+    print("🔍 Agent 2: Reviewing...")
+    return _save_output(_agent2_review(tcs))
+
+
+# ── Public API ───────────────────────────────────────────────────────────────
+
+def generate_from_excel(input_file: str, output_file: str = None, image_path: str = None) -> str:
+    df = pd.read_excel(input_file)
+    image_b64 = _load_image_b64(image_path)
+
+    groups = {}
+    for _, row in df.iterrows():
+        story = str(row.get("User Story", "") or "").strip() or "Unknown Story"
+        ac = str(row.get("Acceptance Criteria", "") or "").strip()
+        if pd.isna(row.get("User Story")) and pd.isna(row.get("Acceptance Criteria")):
+            continue
+        groups.setdefault(story, {"acs": [], "rows": []})
+        groups[story]["acs"].append(ac)
+        groups[story]["rows"].append(row)
+
+    print(f"📊 {len(groups)} unique user stories.")
+    all_tcs = []
+
+    for i, (story, data) in enumerate(groups.items(), 1):
+        print(f"\n  Story {i}/{len(groups)}: {story[:60]}...")
+        first = data["rows"][0]
+        extra = "\n".join(
+            f"{c}: {first.get(c)}" for c in
+            ["Feature/Module", "Priority", "Risk Level", "Preconditions",
+             "Test Environment", "Generic Test Data", "Comments/Notes"]
+            if pd.notna(first.get(c)) and str(first.get(c, "")).strip()
+        )
+        ac_text = "\n".join(f"AC {j}: {ac}" for j, ac in enumerate(data["acs"], 1))
+        raw = _agent1_generate(story, ac_text, extra, image_b64)
+        all_tcs.extend(_parse_tcs(raw, story, ac_text))
+
+    print(f"\n📋 Total: {len(all_tcs)} | 🔍 Agent 2 reviewing...")
+    all_tcs = _agent2_review(all_tcs)
+
+    path = output_file or f"output/{datetime.now().strftime('%Y%m%d_%H%M%S')}_generated_tcs.xlsx"
+    os.makedirs(os.path.dirname(path) or "output", exist_ok=True)
+    df_out = pd.DataFrame(all_tcs)
+    df_out.insert(0, "S.No.", range(1, len(df_out) + 1))
+    df_out.to_excel(path, index=False)
+    print(f"✅ {len(df_out)} test cases → {path}")
+    return path
+
+
+def generate_from_ado(story_id: str, org: str, project: str, pat: str, image_path: str = None) -> str:
+    print(f"\n🔗 Fetching ADO story #{story_id}...")
+    s = _fetch_ado_story(story_id, org, project, pat)
+    title = s["title"] or f"User Story #{story_id}"
+    ac_text = s["acceptance_criteria"] or "No acceptance criteria provided."
+    extra = f"Description: {s['description']}" if s["description"] else ""
+    print(f"  ✅ '{title}'")
+    return _run_pipeline(title, ac_text, extra, _load_image_b64(image_path))
+
+
+def upload_test_cases_ado(excel_file: str, org: str, proj: str, pat: str, plan_name: str, suite_name: str):
+    df = pd.read_excel(excel_file)
+    mgr = ADOTestManager(org, proj, pat, plan_name)
+    uploaded, failed = 0, 0
+    for _, row in df.iterrows():
+        if row.get("Status") == "Error":
+            continue
+        steps = [
+            {"action": p[0].strip(), "expected": p[1].strip()}
+            for line in str(row.get("Steps", "")).strip().splitlines()
+            if "->" in line
+            for p in [line.split("->", 1)]
+        ]
+        if not steps:
+            failed += 1
+            continue
+        try:
+            mgr.create_test_case(suite_name, row.get("Title", "Test Case"), steps, int(row.get("Priority", 2)))
+            uploaded += 1
+        except Exception as e:
+            failed += 1
+            print(f"❌ {row.get('Title', '?')}: {e}")
+    print(f"✅ Uploaded {uploaded}/{len(df)} ({failed} failed)")
+    return uploaded, failed
+
+
+def agentic_flow(story_id: str, org: str, project: str, pat: str) -> dict:
+    SUITE = "TCS"
+    print(f"\n⚡ Agentic Flow: story #{story_id}")
+    s = _fetch_ado_story(story_id, org, project, pat)
+    title = s["title"] or f"Story {story_id}"
+    safe = re.sub(r"\s+", " ", re.sub(r"[^\w\s\-]", "", title).strip())[:60].strip()
+    plan_name = f"TCS - {safe}"
+    print(f"  Plan: '{plan_name}' | Suite: '{SUITE}'")
+
+    output_file = generate_from_ado(story_id, org, project, pat)
+    generated = len(pd.read_excel(output_file))
+    uploaded, failed = upload_test_cases_ado(output_file, org, project, pat, plan_name, SUITE)
+
+    return {
+        "story_id": story_id, "story_title": title,
+        "plan_name": plan_name, "suite_name": SUITE,
+        "generated_count": generated, "uploaded_count": uploaded,
+        "failed_count": failed, "filename": os.path.basename(output_file),
+    }
+
+
+# ── Figma utility ────────────────────────────────────────────────────────────
+
+def download_image(url: str, figma_token: str):
+    m = re.search(r"figma\.com/(?:design|file)/([a-zA-Z0-9]+)/[^?]*\?node-id=([\d-]+)", url)
+    if not m:
+        print("❌ Failed to parse Figma URL")
+        return None
+    file_key, node_id = m.group(1), m.group(2).replace("-", ":")
+    png_url = requests.get(
+        f"https://api.figma.com/v1/images/{file_key}?ids={node_id}&format=png",
+        headers={"X-Figma-Token": figma_token}
+    ).json()["images"][node_id]
+    Path("figma.png").write_bytes(requests.get(png_url).content)
+    return "figma.png"
+
+
+# ── ADO Test Manager ─────────────────────────────────────────────────────────
 
 class ADOTestManager:
     def __init__(self, org, proj, pat, plan_name):
-        self.org, self.proj, self.base = org, proj, f"https://dev.azure.com/{org}/{proj}/_apis"
-        self.auth, self.h, self.suites = HTTPBasicAuth('', pat), {"Content-Type": "application/json"}, {}
+        self.org, self.proj = org, proj
+        self.base = f"https://dev.azure.com/{org}/{proj}/_apis"
+        self.auth = HTTPBasicAuth("", pat)
+        self.h = {"Content-Type": "application/json"}
+        self._suites: dict = {}
         self.plan_id = self._setup_plan(plan_name)
 
-    def _setup_plan(self, plan_name):
-        r = requests.get(f"{self.base}/testplan/plans?api-version=7.0", headers=self.h, auth=self.auth)
-        plan_id = next((p['id'] for p in r.json().get('value', []) if p['name'] == plan_name), None)
-        if not plan_id:
-            r = requests.post(f"{self.base}/testplan/plans?api-version=7.0", headers=self.h, auth=self.auth,
-                              json={"name": plan_name, "areaPath": self.proj, "iteration": self.proj})
-            plan_id = r.json()['id']
-        return plan_id
+    def _setup_plan(self, name: str) -> int:
+        plans = requests.get(f"{self.base}/testplan/plans?api-version=7.0",
+                             headers=self.h, auth=self.auth).json().get("value", [])
+        pid = next((p["id"] for p in plans if p["name"] == name), None)
+        if not pid:
+            pid = requests.post(f"{self.base}/testplan/plans?api-version=7.0",
+                                headers=self.h, auth=self.auth,
+                                json={"name": name, "areaPath": self.proj, "iteration": self.proj}).json()["id"]
+        return pid
 
-    def _get_suite(self, suite_name):
-        if suite_name in self.suites: return self.suites[suite_name]
-        r = requests.get(f"{self.base}/testplan/plans/{self.plan_id}/suites?api-version=7.0", headers=self.h,
-                         auth=self.auth)
-        suites = r.json().get('value', [])
-        root = next((s for s in suites if s.get('suiteType') == 'staticTestSuite' and s.get('parentSuite') is None),
+    def _get_suite(self, name: str) -> int:
+        if name in self._suites:
+            return self._suites[name]
+        suites = requests.get(f"{self.base}/testplan/plans/{self.plan_id}/suites?api-version=7.0",
+                              headers=self.h, auth=self.auth).json().get("value", [])
+        root = next((s for s in suites if s.get("suiteType") == "staticTestSuite" and not s.get("parentSuite")),
                     suites[0])
-        suite_id = next((s['id'] for s in suites if s['name'] == suite_name), None)
-        if not suite_id:
-            r = requests.post(f"{self.base}/testplan/plans/{self.plan_id}/suites?api-version=7.0", headers=self.h,
-                              auth=self.auth,
-                              json={"suiteType": "staticTestSuite", "name": suite_name,
-                                    "parentSuite": {"id": root['id']}})
-            suite_id = r.json()['id']
-        self.suites[suite_name] = suite_id
-        return suite_id
+        sid = next((s["id"] for s in suites if s["name"] == name), None)
+        if not sid:
+            sid = requests.post(f"{self.base}/testplan/plans/{self.plan_id}/suites?api-version=7.0",
+                                headers=self.h, auth=self.auth,
+                                json={"suiteType": "staticTestSuite", "name": name,
+                                      "parentSuite": {"id": root["id"]}}).json()["id"]
+        self._suites[name] = sid
+        return sid
 
-    def create_test_case(self, suite_name, title, steps, priority=2):
-        suite_id = self._get_suite(suite_name)
-        steps_xml = f'<steps id="0" last="{len(steps)}">'
-        for i, s in enumerate(steps, 1):
-            steps_xml += f'<step id="{i}" type="ActionStep"><parameterizedString isformatted="true">&lt;P&gt;{s["action"]}&lt;/P&gt;</parameterizedString><parameterizedString isformatted="true">&lt;P&gt;{s["expected"]}&lt;/P&gt;</parameterizedString><description/></step>'
-        steps_xml += '</steps>'
-        payload = [{"op": "add", "path": "/fields/System.Title", "value": title},
-                   {"op": "add", "path": "/fields/Microsoft.VSTS.TCM.Steps", "value": steps_xml},
-                   {"op": "add", "path": "/fields/Microsoft.VSTS.Common.Priority", "value": priority}]
-        r = requests.post(f"{self.base}/wit/workitems/$Test Case?api-version=7.0",
-                          headers={"Content-Type": "application/json-patch+json"}, auth=self.auth, json=payload)
-        tc_id = r.json()['id']
+    def create_test_case(self, suite_name: str, title: str, steps: list, priority: int = 2) -> int:
+        sid = self._get_suite(suite_name)
+        xml = f'<steps id="0" last="{len(steps)}">' + "".join(
+            f'<step id="{i}" type="ActionStep">'
+            f'<parameterizedString isformatted="true">&lt;P&gt;{s["action"]}&lt;/P&gt;</parameterizedString>'
+            f'<parameterizedString isformatted="true">&lt;P&gt;{s["expected"]}&lt;/P&gt;</parameterizedString>'
+            f'<description/></step>'
+            for i, s in enumerate(steps, 1)
+        ) + "</steps>"
+        tc_id = requests.post(
+            f"{self.base}/wit/workitems/$Test Case?api-version=7.0",
+            headers={"Content-Type": "application/json-patch+json"}, auth=self.auth,
+            json=[{"op": "add", "path": "/fields/System.Title", "value": title},
+                  {"op": "add", "path": "/fields/Microsoft.VSTS.TCM.Steps", "value": xml},
+                  {"op": "add", "path": "/fields/Microsoft.VSTS.Common.Priority", "value": priority}]
+        ).json()["id"]
         requests.post(
-            f"https://dev.azure.com/{self.org}/{self.proj}/_apis/test/Plans/{self.plan_id}/Suites/{suite_id}/testcases/{tc_id}?api-version=5.0",
+            f"https://dev.azure.com/{self.org}/{self.proj}/_apis/test/Plans/{self.plan_id}/Suites/{sid}/testcases/{tc_id}?api-version=5.0",
             headers=self.h, auth=self.auth)
-        print(f"Created Test Case #{tc_id} in suite '{suite_name}'")
+        print(f"  Created TC #{tc_id} in '{suite_name}'")
         return tc_id
-
-
-def generate_test_cases(input_file, output_file=None, image_path=None):
-    from datetime import datetime
-    import base64
-    if output_file is None:
-        os.makedirs("output", exist_ok=True)
-        output_file = f"output/{datetime.now().strftime('%Y%m%d_%H%M%S')}_generated_tcs.xlsx"
-
-    df = pd.read_excel(input_file)
-    all_generated_tcs = []
-
-    if output_dir := os.path.dirname(output_file):
-        os.makedirs(output_dir, exist_ok=True)
-
-    figma_image_base64 = None
-    if image_path:
-        try:
-            with open(image_path, "rb") as image_file:
-                figma_image_base64 = base64.b64encode(image_file.read()).decode('utf-8')
-            print(f"✅ Found {image_path} - will include in API calls")
-        except Exception as e:
-            print(f"⚠️ Error reading {image_path}: {e}")
-
-    # Step 1: Group acceptance criteria by user story
-    print(f"📊 Grouping acceptance criteria by user story...")
-    story_groups = {}
-
-    for idx, row in df.iterrows():
-        user_story = row.get("User Story", "")
-        ac = row.get("Acceptance Criteria", "")
-
-        # Skip if both are empty
-        if pd.isna(user_story) and pd.isna(ac):
-            continue
-
-        # Handle empty user story (use previous story or mark as unknown)
-        if pd.isna(user_story) or str(user_story).strip() == "":
-            user_story = "Unknown Story"
-
-        user_story = str(user_story).strip()
-
-        # Initialize story group if not exists
-        if user_story not in story_groups:
-            story_groups[user_story] = {
-                "acceptance_criteria": [],
-                "context_rows": []
-            }
-
-        # Add AC and context for this story
-        story_groups[user_story]["acceptance_criteria"].append(str(ac) if pd.notna(ac) else "")
-        story_groups[user_story]["context_rows"].append(row)
-
-    print(f"✅ Found {len(story_groups)} unique user stories")
-
-    # Step 2: Generate test cases for each user story (with all its ACs at once)
-    print(f"\n🤖 Agent 1: Generating test cases story-wise...")
-
-    for story_num, (user_story, story_data) in enumerate(story_groups.items(), 1):
-        acs = story_data["acceptance_criteria"]
-        context_rows = story_data["context_rows"]
-
-        print(f"\n  Processing Story {story_num}/{len(story_groups)}: {user_story[:50]}...")
-        print(f"  └─ {len(acs)} acceptance criteria to process")
-
-        # Build context from the first row (assuming similar context for same story)
-        first_row = context_rows[0]
-        context = "\n".join([f"{col}: {first_row.get(col, '')}" for col in
-                             ["Feature/Module", "Priority", "Risk Level", "Preconditions", "Test Environment",
-                              "Generic Test Data", "Comments/Notes"] if
-                             pd.notna(first_row.get(col, "")) and str(first_row.get(col, "")).strip()])
-
-        # Build combined acceptance criteria text
-        ac_text = ""
-        for i, ac in enumerate(acs, 1):
-            ac_text += f"\nAC {i}: {ac}"
-
-        prompt_text = f"""You are a QA Engineer at Energy Utility Company. Your responsibility is to create test cases for assistance tools developed for Customer Service Representatives (CSRs). These tools are designed to help CSRs communicate effectively and efficiently with customers.
-
-        Some context regarding company products:
-        - A Knowledge Base is a central storage system where which is trained on support documents, it is used by CSR's to search for relevant information to assist customers.
-        - Email Assist helps CSRs generate customer email replies quickly by pulling the right template from the Knowledge Base using a syntax. It also fills dynamic placeholder values like the customer’s name or other details automatically.
-        - Call Assist helps CSRs during customer calls by automatically transcribing the conversation and generating a summary. This saves time and helps the CSR quickly review the main points of the call afterward.
-
-User Story: {user_story}
-
-Acceptance Criteria:
-{ac_text}
-
-{context}
-
-{"Use the provided Figma screenshot for UI reference, and make sure to include UI test cases to verify content and layout only." if figma_image_base64 else ""}
-
-Instructions:
- - CREATE A MIX OF POSITIVE/NEGATIVE/EDGE CASES (if needed) BASED ON THE PROVIDED USER STORY AND ACCEPTANCE CRITERIA ONLY
- - DONT ASSUME THINGS THAT ARE NOT PROVIDED IN THE ACCEPTANCE CRITERIA. 
- - TEST CASES COUNT DOES NOT MATTER UNLESS THE STORY AND THE ACCEPTANCE CRITERIA IS MET. 
- - REFER QUALITY OVER QUANTITY.
- - DONT MAKE ANY SCENARIO WHICH WILL REQUIRE ADDITIONAL DEVELOPMENT AND IS NOT PRESENT IN THE ACCEPTANCE CRITERIA
-**MAKE SURE YOU COVER ALL THE SCENARIOS MENTIONED IN THE ACCEPTANCE CRITERIA. IF SOMETHING IS NOT CLEAR, SKIP IT RATHER THAN MAKING ASSUMPTIONS.**
-
-For EACH test case, use this EXACT format:
-
-Test Type: [Positive/Negative/Edge Case(if required)]
-Title: [Clear test case title]
-Priority: [1-4]
-Steps:
-```
-{{'action': '[step action]', 'expected': '[step expected]'}},
-{{'action': '[step action]', 'expected': '[step expected]'}},
-{{'action': '[step action]', 'expected': '[step expected]'}}
-```
----
-
-Each step must be a dictionary with 'action' and 'expected' keys.
-Between each test case there should be a line with only --- to separate them.
-"""
-
-        try:
-            messages = [
-                {"role": "system",
-                 "content": "You are a QA engineer. Generate test cases in the EXACT format requested."}
-            ]
-
-            if figma_image_base64:
-                messages.append({
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt_text},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{figma_image_base64}"
-                            }
-                        }
-                    ]
-                })
-            else:
-                messages.append({"role": "user", "content": prompt_text})
-
-            response = openai.ChatCompletion.create(
-                engine=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
-                messages=messages,
-                temperature=0.3,
-            )
-            content = response.choices[0].message.content.strip()
-
-            # Store generated test cases with their context
-            all_generated_tcs.append({
-                "user_story": user_story,
-                "acceptance_criteria": ac_text,  # Store all ACs
-                "generated_content": content
-            })
-            print(f"  ✓ Generated TCs for story {story_num}/{len(story_groups)}")
-
-        except Exception as e:
-            print(f"  ❌ Error generating TCs for story {story_num}: {e}")
-            all_generated_tcs.append({
-                "user_story": user_story,
-                "acceptance_criteria": ac_text,
-                "generated_content": f"ERROR: {str(e)}"
-            })
-
-    # Step 3: Parse all generated test cases
-    print(f"\n📋 Parsing {len(all_generated_tcs)} generated test case sets...")
-    all_parsed_tcs = []
-
-    for tc_set in all_generated_tcs:
-        content = tc_set["generated_content"]
-        for block in [b for b in content.split("---") if "Title:" in b]:
-            lines = block.strip().split("\n")
-            test_type = next((l.replace("Test Type:", "").strip() for l in lines if "Test Type:" in l), "Functional")
-            title = next((l.replace("Title:", "").strip() for l in lines if "Title:" in l), "Test Case")
-            priority = next((l.replace("Priority:", "").strip() for l in lines if "Priority:" in l), "2")
-            try:
-                priority = int(priority)
-                if priority not in [1, 2, 3, 4]: priority = 2
-            except:
-                priority = 2
-            steps, in_code_block = "", False
-            for line in lines:
-                if line.strip().startswith("```"): in_code_block = not in_code_block; continue
-                if in_code_block: steps += line + "\n"
-            steps_formatted = []
-            try:
-                if not steps.strip().startswith('['): steps = '[' + steps.strip() + ']'
-                steps_list = ast.literal_eval(steps.strip())
-                if isinstance(steps_list, list):
-                    for s in steps_list:
-                        if isinstance(s, dict) and 'action' in s and 'expected' in s:
-                            steps_formatted.append(f"{s['action']} -> {s['expected']}")
-                steps = '\n'.join(steps_formatted) if steps_formatted else steps.strip()
-            except:
-                steps = steps.strip()
-
-            all_parsed_tcs.append({
-                "User Story": tc_set["user_story"],
-                "Test Type": test_type,
-                "Title": title,
-                "Priority": priority,
-                "Steps": steps,
-                "Status": "Not Executed",
-                "Comments": ""
-            })
-
-    print(f"✓ Parsed {len(all_parsed_tcs)} test cases total")
-
-    # Step 4: Compile all test cases for redundancy review
-    print(f"\n🔍 Agent 2: Review Agent checking for redundant test cases...")
-
-    compiled_tcs = ""
-    for i, tc in enumerate(all_parsed_tcs, 1):
-        compiled_tcs += f"\n{i}. Title: {tc['Title']}\n"
-        compiled_tcs += f"   Steps:\n{tc['Steps']}\n"
-
-    # Step 5: Call Review Agent to identify redundant test cases
-    review_prompt = f"""You are a QA Review Lead Agent. Your ONLY job is to identify and remove duplicate/redundant/not needed/illogical test cases.
-
-Here are all the generated test cases:
-
-{compiled_tcs}
-
-Instructions:
-- Identify test cases that are duplicate redundant or not needed.
-- **Identify only the main edge cases that add value and should be covered, removing any that are very similar or are too extreme and not practical.**
-- **Only keep main test cases which cover the story and are very accurate and straightforward. Remove all useless test cases.**
-- **Always remember QUALITY over QUANTITY.**
-- Return a comma-separated list of test case numbers to KEEP 
-- Only output the numbers, nothing else
-
-Example output: 1,2,4,5,7,9,10,12
-
-Output:"""
-
-    try:
-        review_response = openai.ChatCompletion.create(
-            engine=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
-            messages=[
-                {"role": "system",
-                 "content": "You are a QA Review Agent. Identify redundant test cases and return only the numbers to keep."},
-                {"role": "user", "content": review_prompt}
-            ],
-            temperature=0.1,
-        )
-
-        reviewed_content = review_response.choices[0].message.content.strip()
-
-        # Parse the numbers to keep
-        keep_indices = set()
-        try:
-            # Extract numbers from the response
-            import re
-            numbers = re.findall(r'\d+', reviewed_content)
-            keep_indices = {int(n) for n in numbers if 1 <= int(n) <= len(all_parsed_tcs)}
-
-            if not keep_indices:
-                # If parsing failed, keep all
-                keep_indices = set(range(1, len(all_parsed_tcs) + 1))
-                print(f"⚠️ Could not parse review response, keeping all test cases")
-            else:
-                removed_count = len(all_parsed_tcs) - len(keep_indices)
-                print(f"✅ Review completed - Removed {removed_count} redundant test cases")
-        except Exception as parse_error:
-            print(f"⚠️ Error parsing review response: {parse_error}, keeping all test cases")
-            keep_indices = set(range(1, len(all_parsed_tcs) + 1))
-
-        # Filter test cases based on review
-        output = [tc for i, tc in enumerate(all_parsed_tcs, 1) if i in keep_indices]
-
-    except Exception as e:
-        print(f"❌ Review agent error: {e}")
-        print(f"⚠️ Keeping all generated test cases")
-        output = all_parsed_tcs
-
-    # Step 6: Save final reviewed test cases
-    df_out = pd.DataFrame(output)
-    df_out.insert(0, "S.No.", range(1, len(df_out) + 1))
-    df_out.to_excel(output_file, index=False)
-    print(f"\n✅ Final output: {len(df_out)} reviewed test cases → {output_file}")
-    return output_file
-
-
-def upload_test_cases_ado(excel_file, org, proj, pat, plan_name, suite_name):
-    df, mgr = pd.read_excel(excel_file), ADOTestManager(org, proj, pat, plan_name)
-    upload_count, error_count = 0, 0
-    print(f"🔄 Uploading to ADO suite '{suite_name}'...")
-    for _, row in df.iterrows():
-        if row.get("Status") == "Error": continue
-        steps_str = str(row.get("Steps", "")).strip()
-        try:
-            # Parse steps from "action -> expected" format
-            steps_list = []
-            for line in steps_str.split('\n'):
-                line = line.strip()
-                if '->' in line:
-                    parts = line.split('->', 1)
-                    steps_list.append({'action': parts[0].strip(), 'expected': parts[1].strip()})
-
-            if not steps_list:
-                error_count += 1;
-                continue
-
-            mgr.create_test_case(suite_name=suite_name, title=row.get("Title", "Test Case"), steps=steps_list,
-                                 priority=int(row.get("Priority", 2)))
-            upload_count += 1
-        except Exception as e:
-            error_count += 1
-            print(f"❌ {row.get('Title', 'Unknown')}: {str(e)}")
-    print(f"✅ Uploaded {upload_count}/{len(df)} test cases ({error_count} failed)")
-    return upload_count, error_count
-
-
-def download_image(URL, FIGMA_TOKEN):
-    pattern = r'figma\.com/(?:design|file)/([a-zA-Z0-9]+)/[^?]*\?node-id=([\d-]+)'
-    match = re.search(pattern, URL)
-    if not match:
-        print("❌ Failed to parse Figma URL")
-        return None
-    FILE_KEY = match.group(1)
-    node_id = match.group(2).replace('-', ':')
-    headers = {
-        "X-Figma-Token": FIGMA_TOKEN
-    }
-    img_api = f"https://api.figma.com/v1/images/{FILE_KEY}?ids={node_id}&format=png"
-    img_response = requests.get(img_api, headers=headers).json()
-    png_url = img_response["images"][node_id]
-    image_bytes = requests.get(png_url).content
-    with open("figma.png", "wb") as f:
-        f.write(image_bytes)
-    return "figma.png"
