@@ -74,11 +74,22 @@ def route_generate_ado():
 def route_agentic_flow():
     d = request.get_json() or {}
     story_id = str(d.get("story_id", "")).strip()
-    org, project, pat = d.get("org", "").strip(), d.get("project", "").strip(), d.get("pat", "").strip()
+    org      = d.get("org", "").strip()
+    project  = d.get("project", "").strip()
+    pat      = d.get("pat", "").strip()
+
+    # Optional overrides — empty string treated as None
+    plan_name_override  = d.get("plan_name_override", "").strip() or None
+    suite_name_override = d.get("suite_name_override", "").strip() or None
+
     if not all([story_id, org, project, pat]):
         return _err("story_id, org, project, and pat are required")
     try:
-        summary = agentic_flow(story_id, org, project, pat)
+        summary = agentic_flow(
+            story_id, org, project, pat,
+            plan_name_override=plan_name_override,
+            suite_name_override=suite_name_override,
+        )
         return jsonify({"status": "success", **summary})
     except Exception as e:
         return _err(str(e), 500)
@@ -92,10 +103,10 @@ def route_upload():
     if not f.filename.endswith(".xlsx"):
         return _err("Only .xlsx allowed")
 
-    org = request.form.get("org")
-    proj = request.form.get("project")
-    pat = request.form.get("pat")
-    plan = request.form.get("plan_name")
+    org   = request.form.get("org")
+    proj  = request.form.get("project")
+    pat   = request.form.get("pat")
+    plan  = request.form.get("plan_name")
     suite = request.form.get("suite_name", "LOGIN")
 
     if not all([org, proj, pat, plan]):
@@ -140,7 +151,7 @@ def route_get_test_cases():
         return _err("File not found", 404)
 
     df = pd.read_excel(path)
-    col_order = ["S.No.", "User Story", "Acceptance Criteria", "Title", "Steps", "Priority", "Test Type"]
+    col_order = ["S.No.", "User Story", "Title", "Steps", "Priority", "Test Type"]
     cols = [c for c in col_order if c in df.columns]
     df = df.where(pd.notnull(df), None)
 

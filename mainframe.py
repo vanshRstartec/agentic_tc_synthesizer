@@ -226,7 +226,15 @@ def generate_from_ado(story_id: str, org: str, project: str, pat: str, image_pat
     return _run_pipeline(title, ac_text, extra, _load_image_b64(image_path))
 
 
-def upload_test_cases_ado(excel_file: str, org: str, proj: str, pat: str, plan_name: str, suite_name: str):
+def upload_test_cases_ado(
+    excel_file: str,
+    org: str,
+    proj: str,
+    pat: str,
+    plan_name: str,
+    suite_name: str,
+    story_id: str = None,
+):
     df = pd.read_excel(excel_file)
     mgr = ADOTestManager(org, proj, pat, plan_name)
     uploaded, failed = 0, 0
@@ -243,7 +251,13 @@ def upload_test_cases_ado(excel_file: str, org: str, proj: str, pat: str, plan_n
             failed += 1
             continue
         try:
-            mgr.create_test_case(suite_name, row.get("Title", "Test Case"), steps, int(row.get("Priority", 2)))
+            mgr.create_test_case(
+                suite_name,
+                row.get("Title", "Test Case"),
+                steps,
+                int(row.get("Priority", 2)),
+                story_id=story_id,
+            )
             uploaded += 1
         except Exception as e:
             failed += 1
@@ -252,24 +266,48 @@ def upload_test_cases_ado(excel_file: str, org: str, proj: str, pat: str, plan_n
     return uploaded, failed
 
 
-def agentic_flow(story_id: str, org: str, project: str, pat: str) -> dict:
-    SUITE = "TCS"
+def agentic_flow(
+    story_id: str,
+    org: str,
+    project: str,
+    pat: str,
+    plan_name_override: str = None,
+    suite_name_override: str = None,
+) -> dict:
+    """
+    Override logic:
+    - plan_name_override provided  → use it as plan name
+    - suite_name_override provided → use it as suite name
+    - neither provided             → auto-generate plan name, suite = "TCS"
+    - suite only provided          → auto-generate plan name, use override suite
+    - plan only provided           → use override plan name, suite = "TCS"
+    """
     print(f"\n⚡ Agentic Flow: story #{story_id}")
     s = _fetch_ado_story(story_id, org, project, pat)
     title = s["title"] or f"Story {story_id}"
+
+    # Build auto plan name from story title (used when no override supplied)
     safe = re.sub(r"\s+", " ", re.sub(r"[^\w\s\-]", "", title).strip())[:60].strip()
-    plan_name = f"TCS - {safe}"
-    print(f"  Plan: '{plan_name}' | Suite: '{SUITE}'")
+    auto_plan_name = f"TCS - {safe}"
+
+    plan_name = plan_name_override.strip() if plan_name_override and plan_name_override.strip() else auto_plan_name
+    suite_name = suite_name_override.strip() if suite_name_override and suite_name_override.strip() else "TCS"
+
+    print(f"  Plan: '{plan_name}' | Suite: '{suite_name}'")
 
     output_file = generate_from_ado(story_id, org, project, pat)
     generated = len(pd.read_excel(output_file))
-    uploaded, failed = upload_test_cases_ado(output_file, org, project, pat, plan_name, SUITE)
+    uploaded, failed = upload_test_cases_ado(output_file, org, project, pat, plan_name, suite_name, story_id=story_id)
 
     return {
-        "story_id": story_id, "story_title": title,
-        "plan_name": plan_name, "suite_name": SUITE,
-        "generated_count": generated, "uploaded_count": uploaded,
-        "failed_count": failed, "filename": os.path.basename(output_file),
+        "story_id": story_id,
+        "story_title": title,
+        "plan_name": plan_name,
+        "suite_name": suite_name,
+        "generated_count": generated,
+        "uploaded_count": uploaded,
+        "failed_count": failed,
+        "filename": os.path.basename(output_file),
     }
 
 
@@ -326,7 +364,14 @@ class ADOTestManager:
         self._suites[name] = sid
         return sid
 
-    def create_test_case(self, suite_name: str, title: str, steps: list, priority: int = 2) -> int:
+    def create_test_case(
+        self,
+        suite_name: str,
+        title: str,
+        steps: list,
+        priority: int = 2,
+        story_id: str = None,
+    ) -> int:
         sid = self._get_suite(suite_name)
         xml = f'<steps id="0" last="{len(steps)}">' + "".join(
             f'<step id="{i}" type="ActionStep">'
@@ -335,15 +380,41 @@ class ADOTestManager:
             f'<description/></step>'
             for i, s in enumerate(steps, 1)
         ) + "</steps>"
+
+        patch = [
+            {"op": "add", "path": "/fields/System.Title",                      "value": title},
+            {"op": "add", "path": "/fields/Microsoft.VSTS.TCM.Steps",          "value": xml},
+            {"op": "add", "path": "/fields/Microsoft.VSTS.Common.Priority",    "value": priority},
+        ]
+
+        # Link the test case to the parent user story as a child work item
+        if story_id:
+            story_url = (
+                f"https://dev.azure.com/{self.org}/{self.proj}"
+                f"/_apis/wit/workitems/{story_id}"
+            )
+            patch.append({
+                "op": "add",
+                "path": "/relations/-",
+                "value": {
+                    "rel": "System.LinkTypes.Hierarchy-Reverse",
+                    "url": story_url,
+                    "attributes": {"comment": "Auto-linked to parent user story by TCS Synthesizer"},
+                },
+            })
+
         tc_id = requests.post(
             f"{self.base}/wit/workitems/$Test Case?api-version=7.0",
-            headers={"Content-Type": "application/json-patch+json"}, auth=self.auth,
-            json=[{"op": "add", "path": "/fields/System.Title", "value": title},
-                  {"op": "add", "path": "/fields/Microsoft.VSTS.TCM.Steps", "value": xml},
-                  {"op": "add", "path": "/fields/Microsoft.VSTS.Common.Priority", "value": priority}]
+            headers={"Content-Type": "application/json-patch+json"},
+            auth=self.auth,
+            json=patch,
         ).json()["id"]
+
         requests.post(
-            f"https://dev.azure.com/{self.org}/{self.proj}/_apis/test/Plans/{self.plan_id}/Suites/{sid}/testcases/{tc_id}?api-version=5.0",
-            headers=self.h, auth=self.auth)
-        print(f"  Created TC #{tc_id} in '{suite_name}'")
+            f"https://dev.azure.com/{self.org}/{self.proj}/_apis/test"
+            f"/Plans/{self.plan_id}/Suites/{sid}/testcases/{tc_id}?api-version=5.0",
+            headers=self.h, auth=self.auth,
+        )
+        link_note = f" → linked to story #{story_id}" if story_id else ""
+        print(f"  Created TC #{tc_id} in '{suite_name}'{link_note}")
         return tc_id
