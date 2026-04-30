@@ -1,3 +1,4 @@
+import queue
 import re, os, ast, base64
 from datetime import datetime
 from pathlib import Path
@@ -16,6 +17,25 @@ openai.api_key = os.getenv("AZURE_OPENAI_KEY")
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
+# ── Live log streaming ────────────────────────────────────────────────────────
+# A Queue instance is injected here by app.py before running agentic_flow in a
+# background thread. _log() writes to both stdout and the queue so that the SSE
+# endpoint can forward every line to the browser in real time.
+
+_log_queue: "queue.Queue | None" = None
+
+
+def set_log_queue(q: "queue.Queue | None") -> None:
+    global _log_queue
+    _log_queue = q
+
+
+def _log(msg: str) -> None:
+    """Print to console and forward to the live-log queue when set."""
+    print(msg)
+    if _log_queue is not None:
+        _log_queue.put(str(msg))
+
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,7 +51,7 @@ def _load_image_b64(image_path: str) -> str:
     try:
         return base64.b64encode(Path(image_path).read_bytes()).decode()
     except Exception as e:
-        print(f"⚠️ Could not load image {image_path}: {e}")
+        _log(f"⚠️ Could not load image {image_path}: {e}")
         return None
 
 def _llm(messages: list, temperature: float = 0.3) -> str:
@@ -48,33 +68,132 @@ def _save_output(tcs: list, path: str = None) -> str:
     df = pd.DataFrame(tcs)
     df.insert(0, "S.No.", range(1, len(df) + 1))
     df.to_excel(path, index=False)
-    print(f"✅ Saved {len(df)} test cases → {path}")
+    _log(f"✅ Saved {len(df)} test cases → {path}")
     return path
 
 
 # ── ADO Story Fetcher ────────────────────────────────────────────────────────
+
+# Attachment extensions we attempt to read as plain text
+_TEXT_EXTS = {".txt", ".md", ".markdown", ".json", ".xml", ".yaml", ".yml",
+              ".csv", ".log", ".html", ".htm", ".rst", ".ini", ".toml"}
+
+
+def _fetch_ado_comments(story_id, org, project, pat) -> str:
+    """Return all comment texts joined as a single string, or empty string."""
+    url = (
+        f"https://dev.azure.com/{org}/{project}/_apis/wit/workitems"
+        f"/{story_id}/comments?api-version=7.1-preview.3"
+    )
+    try:
+        r = requests.get(url, headers={"Content-Type": "application/json"},
+                         auth=HTTPBasicAuth("", pat), timeout=15)
+        if r.status_code != 200:
+            _log(f"  ⚠️ Could not fetch comments (HTTP {r.status_code}) — skipping.")
+            return ""
+        items = r.json().get("comments", [])
+        if not items:
+            return ""
+        parts = []
+        for c in items:
+            author = c.get("createdBy", {}).get("displayName", "Unknown")
+            date   = (c.get("createdDate") or "")[:10]
+            text   = _strip_html(c.get("text") or "")
+            if text:
+                parts.append(f"[{date}] {author}: {text}")
+        _log(f"  💬 Fetched {len(parts)} comment(s).")
+        return "\n".join(parts)
+    except Exception as e:
+        _log(f"  ⚠️ Error fetching comments: {e} — skipping.")
+        return ""
+
+
+def _fetch_ado_attachments(relations: list, pat: str) -> str:
+    """
+    Download text-readable attachments from the work item's relations list.
+    Returns a combined string with each file's name and content.
+    Binary/unreadable files are noted by name only.
+    """
+    if not relations:
+        return ""
+
+    attachment_relations = [
+        r for r in relations if r.get("rel") == "AttachedFile"
+    ]
+    if not attachment_relations:
+        return ""
+
+    _log(f"  📎 Found {len(attachment_relations)} attachment(s) — fetching text content...")
+    parts = []
+
+    for rel in attachment_relations:
+        url      = rel.get("url", "")
+        filename = rel.get("attributes", {}).get("name", url.split("/")[-1])
+        ext      = Path(filename).suffix.lower()
+
+        try:
+            resp = requests.get(url, auth=HTTPBasicAuth("", pat), timeout=60)
+            if resp.status_code != 200:
+                _log(f"    ⚠️ Could not download '{filename}' (HTTP {resp.status_code}) — skipping.")
+                parts.append(f"[Attachment: {filename} — could not download]")
+                continue
+
+            if ext in _TEXT_EXTS:
+                try:
+                    text = resp.content.decode("utf-8", errors="replace").strip()
+                    parts.append(f"[Attachment: {filename}]\n{text}")
+                    _log(f"    ✔ Read text attachment: {filename} ({len(text)} chars)")
+                except Exception:
+                    parts.append(f"[Attachment: {filename} — could not decode as text]")
+            else:
+                parts.append(f"[Attachment: {filename} — binary file, content not included]")
+                _log(f"    ℹ Binary attachment noted: {filename}")
+
+        except Exception as e:
+            _log(f"    ⚠️ Error fetching '{filename}': {e} — skipping.")
+            parts.append(f"[Attachment: {filename} — fetch error]")
+
+    return "\n\n".join(parts)
+
 
 def _fetch_ado_story(story_id, org, project, pat) -> dict:
     url = f"https://dev.azure.com/{org}/{project}/_apis/wit/workitems/{story_id}?$expand=all&api-version=7.0"
     r = requests.get(url, headers={"Content-Type": "application/json"}, auth=HTTPBasicAuth("", pat))
     if r.status_code != 200:
         raise Exception(f"ADO API error {r.status_code}: {r.text}")
-    f = r.json().get("fields", {})
+    body      = r.json()
+    f         = body.get("fields", {})
+    relations = body.get("relations") or []
+
+    comments        = _fetch_ado_comments(story_id, org, project, pat)
+    attachments_text = _fetch_ado_attachments(relations, pat)
+
     return {
-        "id": story_id,
-        "title": f.get("System.Title", "").strip(),
-        "description": _strip_html(f.get("System.Description", "") or ""),
+        "id":                story_id,
+        "title":             f.get("System.Title", "").strip(),
+        "description":       _strip_html(f.get("System.Description", "") or ""),
         "acceptance_criteria": _strip_html(f.get("Microsoft.VSTS.Common.AcceptanceCriteria", "") or ""),
+        "comments":          comments,
+        "attachments_text":  attachments_text,
     }
 
 
 # ── Agent 1: Generate ────────────────────────────────────────────────────────
 
-def _agent1_generate(user_story: str, ac_text: str, extra_context: str = "", image_b64: str = None) -> str:
+def _agent1_generate(
+    user_story: str,
+    ac_text: str,
+    extra_context: str = "",
+    image_b64: str = None,
+    comments: str = "",
+    attachments_text: str = "",
+) -> str:
     prompt = _load_prompt("agent1_generate.txt").format(
         user_story=user_story,
         acceptance_criteria=ac_text,
         extra_context=extra_context,
+        comments=comments,
+        attachments_text=attachments_text,
         figma_instruction=(
             "Use the provided Figma screenshot for UI reference. "
             "Include UI test cases to verify content and layout only."
@@ -156,19 +275,29 @@ def _agent2_review(tcs: list) -> list:
 
     keep = {int(n) for n in re.findall(r"\d+", response) if 1 <= int(n) <= len(tcs)}
     if not keep:
-        print("⚠️ Review returned no valid indices — keeping all.")
+        _log("⚠️ Review returned no valid indices — keeping all.")
         return tcs
-    print(f"✅ Review: kept {len(keep)}, removed {len(tcs) - len(keep)}.")
+    _log(f"✅ Review: kept {len(keep)}, removed {len(tcs) - len(keep)}.")
     return [tc for i, tc in enumerate(tcs, 1) if i in keep]
 
 
 # ── Core pipeline ────────────────────────────────────────────────────────────
 
-def _run_pipeline(user_story: str, ac_text: str, extra_context: str = "", image_b64: str = None) -> str:
-    print("🤖 Agent 1: Generating...")
-    tcs = _parse_tcs(_agent1_generate(user_story, ac_text, extra_context, image_b64), user_story, ac_text)
-    print(f"📋 Parsed {len(tcs)} test cases.")
-    print("🔍 Agent 2: Reviewing...")
+def _run_pipeline(
+    user_story: str,
+    ac_text: str,
+    extra_context: str = "",
+    image_b64: str = None,
+    comments: str = "",
+    attachments_text: str = "",
+) -> str:
+    _log("🤖 Agent 1: Generating test cases...")
+    tcs = _parse_tcs(
+        _agent1_generate(user_story, ac_text, extra_context, image_b64, comments, attachments_text),
+        user_story, ac_text,
+    )
+    _log(f"📋 Parsed {len(tcs)} test cases.")
+    _log("🔍 Agent 2: Reviewing for redundancy...")
     return _save_output(_agent2_review(tcs))
 
 
@@ -188,11 +317,11 @@ def generate_from_excel(input_file: str, output_file: str = None, image_path: st
         groups[story]["acs"].append(ac)
         groups[story]["rows"].append(row)
 
-    print(f"📊 {len(groups)} unique user stories.")
+    _log(f"📊 {len(groups)} unique user stories found in Excel.")
     all_tcs = []
 
     for i, (story, data) in enumerate(groups.items(), 1):
-        print(f"\n  Story {i}/{len(groups)}: {story[:60]}...")
+        _log(f"  Story {i}/{len(groups)}: {story[:60]}...")
         first = data["rows"][0]
         extra = "\n".join(
             f"{c}: {first.get(c)}" for c in
@@ -204,7 +333,7 @@ def generate_from_excel(input_file: str, output_file: str = None, image_path: st
         raw = _agent1_generate(story, ac_text, extra, image_b64)
         all_tcs.extend(_parse_tcs(raw, story, ac_text))
 
-    print(f"\n📋 Total: {len(all_tcs)} | 🔍 Agent 2 reviewing...")
+    _log(f"📋 Total parsed: {len(all_tcs)} | 🔍 Agent 2 reviewing...")
     all_tcs = _agent2_review(all_tcs)
 
     path = output_file or f"output/{datetime.now().strftime('%Y%m%d_%H%M%S')}_generated_tcs.xlsx"
@@ -212,18 +341,23 @@ def generate_from_excel(input_file: str, output_file: str = None, image_path: st
     df_out = pd.DataFrame(all_tcs)
     df_out.insert(0, "S.No.", range(1, len(df_out) + 1))
     df_out.to_excel(path, index=False)
-    print(f"✅ {len(df_out)} test cases → {path}")
+    _log(f"✅ {len(df_out)} test cases saved → {path}")
     return path
 
 
 def generate_from_ado(story_id: str, org: str, project: str, pat: str, image_path: str = None) -> str:
-    print(f"\n🔗 Fetching ADO story #{story_id}...")
+    _log(f"🔗 Fetching ADO story #{story_id}...")
     s = _fetch_ado_story(story_id, org, project, pat)
-    title = s["title"] or f"User Story #{story_id}"
+    title   = s["title"] or f"User Story #{story_id}"
     ac_text = s["acceptance_criteria"] or "No acceptance criteria provided."
-    extra = f"Description: {s['description']}" if s["description"] else ""
-    print(f"  ✅ '{title}'")
-    return _run_pipeline(title, ac_text, extra, _load_image_b64(image_path))
+    extra   = f"Description: {s['description']}" if s["description"] else ""
+    _log(f"  ✅ Story fetched: '{title}'")
+    return _run_pipeline(
+        title, ac_text, extra,
+        _load_image_b64(image_path),
+        comments=s["comments"],
+        attachments_text=s["attachments_text"],
+    )
 
 
 def upload_test_cases_ado(
@@ -262,7 +396,8 @@ def upload_test_cases_ado(
         except Exception as e:
             failed += 1
             print(f"❌ {row.get('Title', '?')}: {e}")
-    print(f"✅ Uploaded {uploaded}/{len(df)} ({failed} failed)")
+            _log(f"  ❌ Failed to upload: {row.get('Title', '?')} — {e}")
+    _log(f"☁️ Upload complete — {uploaded} uploaded, {failed} failed.")
     return uploaded, failed
 
 
@@ -282,22 +417,26 @@ def agentic_flow(
     - suite only provided          → auto-generate plan name, use override suite
     - plan only provided           → use override plan name, suite = "TCS"
     """
-    print(f"\n⚡ Agentic Flow: story #{story_id}")
+    _log(f"⚡ Agentic Flow started for story #{story_id}")
     s = _fetch_ado_story(story_id, org, project, pat)
     title = s["title"] or f"Story {story_id}"
 
-    # Build auto plan name from story title (used when no override supplied)
-    safe = re.sub(r"\s+", " ", re.sub(r"[^\w\s\-]", "", title).strip())[:60].strip()
-    auto_plan_name = f"TCS - {safe}"
+    # Build auto plan name — includes story ID so it's always unique and traceable
+    safe = re.sub(r"\s+", " ", re.sub(r"[^\w\s\-]", "", title).strip())[:50].strip()
+    auto_plan_name = f"TCS - #{story_id} - {safe}"
 
     plan_name = plan_name_override.strip() if plan_name_override and plan_name_override.strip() else auto_plan_name
     suite_name = suite_name_override.strip() if suite_name_override and suite_name_override.strip() else "TCS"
 
-    print(f"  Plan: '{plan_name}' | Suite: '{suite_name}'")
+    _log(f"  📋 Test Plan : '{plan_name}'")
+    _log(f"  📁 Test Suite: '{suite_name}'")
 
+    _log(f"  🧠 Generating test cases from ADO story #{story_id}...")
     output_file = generate_from_ado(story_id, org, project, pat)
     generated = len(pd.read_excel(output_file))
+    _log(f"  ☁️ Uploading {generated} test cases to ADO...")
     uploaded, failed = upload_test_cases_ado(output_file, org, project, pat, plan_name, suite_name, story_id=story_id)
+    _log(f"✅ Agentic Flow complete — {uploaded} uploaded, {failed} failed.")
 
     return {
         "story_id": story_id,
@@ -316,7 +455,7 @@ def agentic_flow(
 def download_image(url: str, figma_token: str):
     m = re.search(r"figma\.com/(?:design|file)/([a-zA-Z0-9]+)/[^?]*\?node-id=([\d-]+)", url)
     if not m:
-        print("❌ Failed to parse Figma URL")
+        _log("❌ Failed to parse Figma URL")
         return None
     file_key, node_id = m.group(1), m.group(2).replace("-", ":")
     png_url = requests.get(
@@ -416,5 +555,5 @@ class ADOTestManager:
             headers=self.h, auth=self.auth,
         )
         link_note = f" → linked to story #{story_id}" if story_id else ""
-        print(f"  Created TC #{tc_id} in '{suite_name}'{link_note}")
+        _log(f"  ✔ TC #{tc_id}: '{title}'{link_note}")
         return tc_id

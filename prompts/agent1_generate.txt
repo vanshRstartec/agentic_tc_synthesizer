@@ -13,6 +13,9 @@ Acceptance Criteria:
 {extra_context}
 {figma_instruction}
 
+{comments}
+{attachments_text}
+
 Instructions:
 - Create a mix of Positive / Negative / Edge Cases based ONLY on the provided story and acceptance criteria.
 - Do NOT assume anything not explicitly stated in the acceptance criteria.

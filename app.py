@@ -1,17 +1,24 @@
 import json
 import os
+import queue
+import threading
+import uuid
 from collections import OrderedDict
 
 import pandas as pd
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, Response, jsonify, request, send_file, stream_with_context
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
+import mainframe as mf
 from mainframe import agentic_flow, generate_from_ado, generate_from_excel, upload_test_cases_ado
 
 app = Flask(__name__)
 CORS(app)
 os.makedirs("output", exist_ok=True)
+
+# In-flight agentic flow jobs: job_id → {queue, result, error}
+_jobs: dict = {}
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -73,26 +80,77 @@ def route_generate_ado():
 @app.route("/agentic_flow", methods=["POST"])
 def route_agentic_flow():
     d = request.get_json() or {}
-    story_id = str(d.get("story_id", "")).strip()
-    org      = d.get("org", "").strip()
-    project  = d.get("project", "").strip()
-    pat      = d.get("pat", "").strip()
-
-    # Optional overrides — empty string treated as None
+    story_id            = str(d.get("story_id", "")).strip()
+    org                 = d.get("org", "").strip()
+    project             = d.get("project", "").strip()
+    pat                 = d.get("pat", "").strip()
     plan_name_override  = d.get("plan_name_override", "").strip() or None
     suite_name_override = d.get("suite_name_override", "").strip() or None
 
     if not all([story_id, org, project, pat]):
         return _err("story_id, org, project, and pat are required")
-    try:
-        summary = agentic_flow(
-            story_id, org, project, pat,
-            plan_name_override=plan_name_override,
-            suite_name_override=suite_name_override,
-        )
-        return jsonify({"status": "success", **summary})
-    except Exception as e:
-        return _err(str(e), 500)
+
+    job_id = str(uuid.uuid4())
+    q: queue.Queue = queue.Queue()
+    _jobs[job_id] = {"queue": q, "result": None, "error": None}
+
+    def _run():
+        mf.set_log_queue(q)
+        try:
+            result = agentic_flow(
+                story_id, org, project, pat,
+                plan_name_override=plan_name_override,
+                suite_name_override=suite_name_override,
+            )
+            _jobs[job_id]["result"] = result
+        except Exception as e:
+            _jobs[job_id]["error"] = str(e)
+        finally:
+            mf.set_log_queue(None)
+            q.put(None)  # sentinel — signals the SSE stream to close
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "started", "job_id": job_id})
+
+
+@app.route("/agentic_flow_logs/<job_id>", methods=["GET"])
+def route_agentic_flow_logs(job_id):
+    job = _jobs.get(job_id)
+    if not job:
+        return _err("Job not found", 404)
+
+    def _generate():
+        q = job["queue"]
+        while True:
+            try:
+                msg = q.get(timeout=120)   # 2-min max silence before giving up
+            except queue.Empty:
+                yield "data: ⏱ Timeout waiting for next log line.\n\n"
+                break
+
+            if msg is None:                # sentinel — flow finished
+                result = job.get("result")
+                error  = job.get("error")
+                if result:
+                    yield f"data: __RESULT__{json.dumps(result)}\n\n"
+                else:
+                    yield f"data: __ERROR__{error or 'Unknown error'}\n\n"
+                _jobs.pop(job_id, None)
+                break
+
+            # Escape newlines so each log line is a single SSE data field
+            safe = str(msg).replace("\n", " ").replace("\r", "")
+            yield f"data: {safe}\n\n"
+
+    return Response(
+        stream_with_context(_generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",       # disable nginx buffering
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
 
 
 @app.route("/upload", methods=["POST"])
@@ -151,7 +209,7 @@ def route_get_test_cases():
         return _err("File not found", 404)
 
     df = pd.read_excel(path)
-    col_order = ["S.No.", "User Story", "Title", "Steps", "Priority", "Test Type"]
+    col_order = ["S.No.", "User Story","Title", "Steps", "Priority", "Test Type"]
     cols = [c for c in col_order if c in df.columns]
     df = df.where(pd.notnull(df), None)
 
