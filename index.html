@@ -9,44 +9,29 @@
     body {
       font-family: 'Segoe UI', Tahoma, sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(53, 124, 255, 0.14), transparent 28%),
+        radial-gradient(circle at top left, rgba(53,124,255,0.14), transparent 28%),
         linear-gradient(180deg, #eef4ff 0%, #f8fbff 18%, #f4f6fa 100%);
-      color: #1f2937;
-      min-height: 100vh;
+      color: #1f2937; min-height: 100vh;
     }
     header {
       background: linear-gradient(135deg, #0f3d91 0%, #0b2b65 55%, #071a3c 100%);
-      color: white;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 18px 40px;
-      position: relative;
-      overflow: hidden;
+      color: white; display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 40px; position: relative; overflow: hidden;
     }
     header::after {
-      content: '';
-      position: absolute;
-      inset: auto -80px -80px auto;
-      width: 260px; height: 260px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.08);
+      content: ''; position: absolute; inset: auto -80px -80px auto;
+      width: 260px; height: 260px; border-radius: 50%; background: rgba(255,255,255,0.08);
     }
     header img { height: 40px; }
     header h1 { font-size: 18px; font-weight: 600; }
     .container { max-width: 1160px; margin: 28px auto 40px; padding: 0 16px; }
     details {
-      background: rgba(255,255,255,0.95);
-      border-radius: 18px;
-      margin-bottom: 18px;
-      border: 1px solid #dbe6ff;
-      box-shadow: 0 14px 34px rgba(16,42,92,0.08);
-      overflow: hidden;
+      background: rgba(255,255,255,0.95); border-radius: 18px; margin-bottom: 18px;
+      border: 1px solid #dbe6ff; box-shadow: 0 14px 34px rgba(16,42,92,0.08); overflow: hidden;
     }
     summary {
-      cursor: pointer; list-style: none;
-      padding: 18px 24px; font-size: 16px; font-weight: 600; color: #00163a;
-      display: flex; justify-content: space-between;
+      cursor: pointer; list-style: none; padding: 18px 24px; font-size: 16px;
+      font-weight: 600; color: #00163a; display: flex; justify-content: space-between;
       background: linear-gradient(180deg, #fbfcff 0%, #f3f7ff 100%);
     }
     summary:hover { background: #eaf0ff; }
@@ -61,95 +46,62 @@
     }
     button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 24px rgba(16,68,189,0.24); }
     button:disabled { background: #999; cursor: not-allowed; box-shadow: none; transform: none; }
-    input[type="file"], input[type="text"] {
+    input[type="text"] {
       width: 100%; padding: 10px; border: 1px solid #c8d8f7;
       border-radius: 10px; font-size: 14px; margin-bottom: 12px; background: #fff;
     }
-    input[type="text"]:disabled { background: #f0f0f0; cursor: not-allowed; }
-    input[type="checkbox"] { margin-right: 8px; cursor: pointer; }
-    .checkbox-group { display: flex; align-items: center; margin-bottom: 12px; }
-    .checkbox-group label { margin: 0; cursor: pointer; font-weight: 500; color: #444; }
     .form-group { margin-bottom: 16px; }
     label { display: block; margin-bottom: 6px; font-weight: 500; color: #444; }
     .optional-tag {
-      font-size: 11px; font-weight: 500; color: #6b80a8;
-      background: #eef3ff; border: 1px solid #c8d8f7;
-      border-radius: 5px; padding: 1px 7px; margin-left: 7px;
+      font-size: 11px; font-weight: 500; color: #6b80a8; background: #eef3ff;
+      border: 1px solid #c8d8f7; border-radius: 5px; padding: 1px 7px; margin-left: 7px;
       vertical-align: middle; letter-spacing: 0.03em;
     }
     .response { margin-top: 14px; padding: 12px; border-radius: 10px; font-size: 14px; }
     .success { background: #dff6e0; border: 1px solid #b8e1b4; color: #1c602b; }
-    .error { background: #fbe3e4; border: 1px solid #f5b6b8; color: #842029; }
-    .info { background: #e6f2ff; border: 1px solid #b6dcff; color: #084298; }
-    .btn-group { display: flex; gap: 10px; align-items: center; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 20px; }
+    .error   { background: #fbe3e4; border: 1px solid #f5b6b8; color: #842029; }
+    .info    { background: #e6f2ff; border: 1px solid #b6dcff; color: #084298; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
     table th, table td { border: 1px solid #dde5f1; padding: 8px; text-align: left; vertical-align: top; }
     table th { background: #f0f3fa; color: #00163a; position: sticky; top: 0; }
     .table-container { max-height: 500px; overflow-y: auto; border: 1px solid #dde5f1; border-radius: 10px; margin-top: 10px; }
-    .input-mode-tabs {
-      display: flex; gap: 0; margin-bottom: 20px;
-      border: 1px solid #c8d8f7; border-radius: 10px; overflow: hidden; width: fit-content;
-    }
-    .input-mode-tab {
-      padding: 9px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
-      background: #f3f7ff; color: #555; border: none; border-right: 1px solid #c8d8f7;
-      transition: background 0.2s, color 0.2s; white-space: nowrap; box-shadow: none;
-    }
-    .input-mode-tab:last-child { border-right: none; }
-    .input-mode-tab.active { background: linear-gradient(135deg, #0f4fd6 0%, #0a3ca7 100%); color: #fff; }
-    .input-mode-tab:hover:not(.active) { background: #eaf0ff; color: #00163a; transform: none; box-shadow: none; }
-    .input-panel { display: none; }
-    .input-panel.active { display: block; }
-    .ado-credentials-group {
-      background: #f3f7ff; border: 1px solid #c8d8f7; border-radius: 12px;
-      padding: 16px; margin-top: 4px; margin-bottom: 16px;
-    }
-    .ado-credentials-group legend { font-size: 13px; font-weight: 600; color: #00163a; padding: 0 6px; background: #f3f7ff; }
     .ado-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
     @media (max-width: 600px) { .ado-grid { grid-template-columns: 1fr; } }
-
-    /* Override fields section */
     .override-group {
       background: #fffbf0; border: 1px solid #f0dfa0; border-radius: 12px;
-      padding: 16px 16px 4px; margin-top: 0; margin-bottom: 16px;
+      padding: 16px 16px 4px; margin-bottom: 16px;
     }
     .override-group-title {
       font-size: 13px; font-weight: 600; color: #7a5c00;
       margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
     }
     .override-group-title::before { content: '⚙️'; }
-
-    /* Agentic flow summary card */
-    /* ── Live log box ── */
+    /* Log box */
     .log-box-wrap { margin-top: 18px; border-radius: 12px; overflow: hidden; border: 1px solid #2a3a5c; }
     .log-box-header {
-      background: #0d1b36; color: #7eb8f7;
-      padding: 9px 16px; font-size: 12px; font-weight: 600;
+      background: #0d1b36; color: #7eb8f7; padding: 9px 16px; font-size: 12px; font-weight: 600;
       display: flex; align-items: center; justify-content: space-between;
       letter-spacing: 0.06em; text-transform: uppercase;
     }
-    .log-box-header .log-dot {
+    .log-dot {
       width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
-      display: inline-block; margin-right: 8px;
-      animation: pulse-dot 1.2s ease-in-out infinite;
+      display: inline-block; margin-right: 8px; animation: pulse-dot 1.2s ease-in-out infinite;
     }
-    .log-box-header .log-dot.done { background: #6b7280; animation: none; }
-    @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .log-dot.done { background: #6b7280; animation: none; }
+    @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
     .log-box {
-      background: #0a1628; color: #c8daf7;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 13px; line-height: 1.65;
-      padding: 14px 16px; max-height: 280px; overflow-y: auto;
-      white-space: pre-wrap; word-break: break-word;
+      background: #0a1628; color: #c8daf7; font-family: 'Courier New', monospace;
+      font-size: 13px; line-height: 1.65; padding: 14px 16px;
+      max-height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
     }
-    .log-box .log-line { display: block; background: transparent; }
-    .log-box .log-line.ok  { color: #86efac; background: transparent; }
-    .log-box .log-line.err { color: #fca5a5; background: transparent; }
-    .log-box .log-line.warn{ color: #fde68a; background: transparent; }
-    .log-box .log-line.info{ color: #93c5fd; background: transparent; }
-
+    .log-line      { display: block; background: transparent; }
+    .log-line.ok   { color: #86efac; background: transparent; }
+    .log-line.err  { color: #fca5a5; background: transparent; }
+    .log-line.warn { color: #fde68a; background: transparent; }
+    .log-line.info { color: #93c5fd; background: transparent; }
+    /* Summary card */
     .af-summary { margin-top: 20px; border: 1px solid #b8e1b4; border-radius: 12px; overflow: hidden; }
-    .af-summary-header { background: #1c602b; color: white; padding: 12px 18px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .af-summary-header { background: #1c602b; color: white; padding: 12px 18px; font-size: 15px; font-weight: 600; }
     .af-summary-body { background: #f4fbf5; padding: 18px; }
     .af-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
     .af-stat { background: white; border: 1px solid #d4edda; border-radius: 10px; padding: 12px 14px; text-align: center; }
@@ -158,20 +110,12 @@
     .af-detail-row { display: flex; align-items: baseline; gap: 8px; font-size: 13px; margin-bottom: 6px; }
     .af-detail-label { font-weight: 600; color: #444; min-width: 90px; }
     .af-detail-value { color: #00163a; font-family: 'Courier New', monospace; background: #e8f0fe; padding: 2px 8px; border-radius: 6px; font-size: 13px; }
-
-    /* Generated TC table inside agentic flow result */
     .af-tc-section { margin-top: 20px; }
     .af-tc-section-header {
-      font-size: 14px; font-weight: 600; color: #00163a;
-      padding: 10px 14px; background: #eef3ff; border: 1px solid #c8d8f7;
-      border-radius: 10px 10px 0 0; display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 600; color: #00163a; padding: 10px 14px;
+      background: #eef3ff; border: 1px solid #c8d8f7; border-radius: 10px 10px 0 0;
     }
     .af-tc-section .table-container { border-radius: 0 0 10px 10px; margin-top: 0; }
-
-    .af-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #b6dcff; border-top-color: #084298; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .divider { border: none; border-top: 1px solid #dbe6ff; margin: 18px 0; }
-    @media (max-width: 768px) { .btn-group { flex-direction: column; align-items: stretch; } }
   </style>
 </head>
 <body>
@@ -184,7 +128,7 @@
 
     <details>
       <summary>📖 User Manual</summary>
-    <div class="section-content">
+      <div class="section-content">
         <h3 style="font-size:1.3em;margin-bottom:15px;">🚀 Getting Started</h3>
         <p style="margin-bottom:20px;">Welcome to the <strong>AI-Powered Functional Test Case Synthesizer</strong> by <strong>rSTAR Technologies</strong> — enter a single ADO Story ID and let the tool do the rest.</p>
         <h4 style="font-size:1.15em;margin-top:20px;margin-bottom:10px;">📋 Step 1: Fill in the Details</h4>
@@ -206,17 +150,13 @@
       </div>
     </details>
 
-
     <details open>
       <summary>⚡ Agentic Flow — Auto Generate &amp; Upload</summary>
       <div class="section-content">
         <p style="margin-bottom:20px;color:#555;font-size:14px;line-height:1.6;">
-          Provide a single ADO Story ID and credentials — the tool will automatically generate test cases
-          and upload them to Azure DevOps in one click. A test plan named after the story and a
-          <strong>TCS</strong> suite will be created automatically, or you can override either below.
+          Provide a single ADO Story ID and PAT — the tool will fetch the story, generate test cases
+          via two AI agents, and upload them to Azure DevOps in one click.
         </p>
-
-        <!-- Required credentials -->
         <div class="ado-grid">
           <div class="form-group">
             <label>ADO User Story ID</label>
@@ -227,32 +167,19 @@
             <input type="text" id="af-pat" placeholder="Your Azure DevOps PAT">
           </div>
         </div>
-
-        <!-- Optional overrides -->
         <div class="override-group">
           <div class="override-group-title">Override Test Plan / Suite (Optional)</div>
           <div class="ado-grid">
             <div class="form-group">
-              <label>
-                Override Test Plan Name
-                <span class="optional-tag">optional</span>
-              </label>
-              <input type="text" id="af-planOverride"
-                     placeholder="Leave blank to auto-generate from story title"
-                     style="margin-bottom:0;">
+              <label>Test Plan Name <span class="optional-tag">optional</span></label>
+              <input type="text" id="af-planOverride" placeholder="Leave blank to auto-generate from story title" style="margin-bottom:0;">
             </div>
             <div class="form-group">
-              <label>
-                Override Test Suite Name
-                <span class="optional-tag">optional</span>
-              </label>
-              <input type="text" id="af-suiteOverride"
-                     placeholder="Leave blank to use default 'TCS'"
-                     style="margin-bottom:0;">
+              <label>Test Suite Name <span class="optional-tag">optional</span></label>
+              <input type="text" id="af-suiteOverride" placeholder="Leave blank to use default 'TCS'" style="margin-bottom:0;">
             </div>
           </div>
         </div>
-
         <button id="af-runBtn" onclick="runAgenticFlow()">⚡ Run Agentic Flow</button>
         <div id="af-response"></div>
       </div>
@@ -262,174 +189,49 @@
 
   <script>
     const API_BASE = 'http://localhost:5000';
-    let generatedFilename = null;
-    let activeTab = 'excel';
 
-    function switchTab(tab) {
-      activeTab = tab;
-      document.querySelectorAll('.input-mode-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.input-panel').forEach(p => p.classList.remove('active'));
-      document.getElementById('tab-' + tab).classList.add('active');
-      document.getElementById('panel-' + tab).classList.add('active');
-      document.getElementById('generateResponse').innerHTML = '';
-      document.getElementById('testCasesContainer').innerHTML = '';
-      document.getElementById('downloadBtn').disabled = true;
-    }
-
-    function toggleImageField(mode) {
-      const checkbox = document.getElementById('imageCheckbox' + (mode === 'excel' ? 'Excel' : 'Ado'));
-      const imageInput = document.getElementById('designImage' + (mode === 'excel' ? 'Excel' : 'Ado'));
-      if (checkbox.checked) { imageInput.disabled = false; }
-      else { imageInput.disabled = true; imageInput.value = ''; }
-    }
-
-    async function generateTestCases() {
-      if (activeTab === 'excel') { await generateFromExcel(); }
-      else { await generateFromAdo(); }
-    }
-
-    async function generateFromExcel() {
-      const fileInput = document.getElementById('generateFile');
-      const responseDiv = document.getElementById('generateResponse');
-      const downloadBtn = document.getElementById('downloadBtn');
-      const container = document.getElementById('testCasesContainer');
-      const imageCheckbox = document.getElementById('imageCheckboxExcel');
-      const designImage = document.getElementById('designImageExcel');
-      downloadBtn.disabled = true;
-      container.innerHTML = '';
-      if (!fileInput.files[0]) { responseDiv.innerHTML = '<div class="response error">Please select an Excel file</div>'; return; }
-      if (imageCheckbox.checked && !designImage.files[0]) { responseDiv.innerHTML = '<div class="response error">Please upload a design image or uncheck the option</div>'; return; }
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-      if (imageCheckbox.checked && designImage.files[0]) { formData.append('image', designImage.files[0]); }
-      try {
-        responseDiv.innerHTML = '<div class="response info">⏳ Generating test cases from Excel…</div>';
-        const res = await fetch(`${API_BASE}/generate_excel`, { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.status === 'success') {
-          generatedFilename = data.filename;
-          responseDiv.innerHTML = `<div class="response success">✅ Success! Generated ${data.count} test cases.<br>Filename: <strong>${data.filename}</strong></div>`;
-          downloadBtn.disabled = false;
-          await fetchAndShowTestCases(data.filename);
-        } else { responseDiv.innerHTML = `<div class="response error">❌ ${data.message}</div>`; }
-      } catch (e) { responseDiv.innerHTML = `<div class="response error">❌ ${e.message}</div>`; }
-    }
-
-    async function generateFromAdo() {
-      const storyId = document.getElementById('adoStoryId').value.trim();
-      const org = document.getElementById('adoOrg').value.trim();
-      const project = document.getElementById('adoProject').value.trim();
-      const pat = document.getElementById('adoPat').value.trim();
-      const responseDiv = document.getElementById('generateResponse');
-      const downloadBtn = document.getElementById('downloadBtn');
-      const container = document.getElementById('testCasesContainer');
-      downloadBtn.disabled = true;
-      container.innerHTML = '';
-      if (!storyId || !org || !project || !pat) { responseDiv.innerHTML = '<div class="response error">Please fill in Story ID, Organisation, Project, and PAT Token</div>'; return; }
-      try {
-        responseDiv.innerHTML = `<div class="response info">⏳ Fetching ADO story #${storyId} and generating test cases…</div>`;
-        const res = await fetch(`${API_BASE}/generate_ado`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_id: storyId, org, project, pat }) });
-        const data = await res.json();
-        if (data.status === 'success') {
-          generatedFilename = data.filename;
-          responseDiv.innerHTML = `<div class="response success">✅ Success! Generated ${data.count} test cases from ADO Story #${storyId}.<br>Filename: <strong>${data.filename}</strong></div>`;
-          downloadBtn.disabled = false;
-          await fetchAndShowTestCases(data.filename);
-        } else { responseDiv.innerHTML = `<div class="response error">❌ ${data.message}</div>`; }
-      } catch (e) { responseDiv.innerHTML = `<div class="response error">❌ ${e.message}</div>`; }
-    }
-
-    // ── Shared table renderer ──────────────────────────────────────────────
-    async function fetchAndShowTestCases(filename, targetContainerId = 'testCasesContainer') {
-      const container = document.getElementById(targetContainerId);
+    async function fetchAndShowTestCases(filename) {
+      const container = document.getElementById('af-tcContainer');
       container.innerHTML = '<div class="response info">📄 Loading test cases…</div>';
       try {
-        const res = await fetch(`${API_BASE}/get-test-cases?filename=${encodeURIComponent(filename)}`);
-        const text = await res.text();
-        const safeText = text.replace(/\bNaN\b/g, 'null');
-        const data = JSON.parse(safeText);
-        if (data.status !== 'success') { container.innerHTML = `<div class="response error">❌ ${data.message}</div>`; return; }
-        const testCases = data.test_cases;
-        if (!testCases.length) { container.innerHTML = '<div class="response info">No test cases found.</div>'; return; }
+        const res  = await fetch(`${API_BASE}/get-test-cases?filename=${encodeURIComponent(filename)}`);
+        const data = JSON.parse((await res.text()).replace(/\bNaN\b/g, 'null'));
+        if (data.status !== 'success' || !data.test_cases.length) {
+          container.innerHTML = '<div class="response info">No test cases found.</div>';
+          return;
+        }
+        const tcs  = data.test_cases;
+        const cols = Object.keys(tcs[0]);
         const table = document.createElement('table');
-        const thead = document.createElement('thead');
+        table.innerHTML = '<thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead>';
         const tbody = document.createElement('tbody');
-        const columns = Object.keys(testCases[0]);
-        thead.innerHTML = '<tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
-        testCases.forEach(row => {
+        tcs.forEach(row => {
           const tr = document.createElement('tr');
-          tr.innerHTML = columns.map(c => {
-            let value = row[c];
-            if (value === null || value === undefined || String(value).toLowerCase() === 'nan') { value = ''; }
-            else if (c === 'Steps') { value = String(value).replace(/\n/g, '<br><br>'); }
-            return `<td>${value}</td>`;
+          tr.innerHTML = cols.map(c => {
+            let v = row[c];
+            if (v === null || v === undefined || String(v).toLowerCase() === 'nan') v = '';
+            else if (c === 'Steps') v = String(v).replace(/\n/g, '<br><br>');
+            return `<td>${v}</td>`;
           }).join('');
           tbody.appendChild(tr);
         });
-        table.appendChild(thead);
         table.appendChild(tbody);
-
-        // For the agentic flow container, wrap in a titled section
-        if (targetContainerId === 'af-tcContainer') {
-          container.innerHTML = '';
-          const section = document.createElement('div');
-          section.className = 'af-tc-section';
-          section.innerHTML = `<div class="af-tc-section-header">📋 Generated &amp; Uploaded Test Cases (${testCases.length})</div>`;
-          const tableWrap = document.createElement('div');
-          tableWrap.className = 'table-container';
-          tableWrap.appendChild(table);
-          section.appendChild(tableWrap);
-          container.appendChild(section);
-        } else {
-          container.innerHTML = `<h4 style="margin-top:20px;">📋 Generated Test Cases</h4><div class="table-container"></div>`;
-          container.querySelector('.table-container').appendChild(table);
-        }
-      } catch (e) { container.innerHTML = `<div class="response error">❌ ${e.message}</div>`; }
+        const section = document.createElement('div');
+        section.className = 'af-tc-section';
+        section.innerHTML = `<div class="af-tc-section-header">📋 Generated &amp; Uploaded Test Cases (${tcs.length})</div>`;
+        const wrap = document.createElement('div');
+        wrap.className = 'table-container';
+        wrap.appendChild(table);
+        section.appendChild(wrap);
+        container.innerHTML = '';
+        container.appendChild(section);
+      } catch (e) {
+        container.innerHTML = `<div class="response error">❌ ${e.message}</div>`;
+      }
     }
 
-    function downloadGeneratedFile() {
-      if (!generatedFilename) return;
-      window.location.href = `${API_BASE}/download?filename=${encodeURIComponent(generatedFilename)}`;
-    }
-
-    async function downloadTemplate() {
-      const resDiv = document.getElementById('templateResponse');
-      try {
-        window.location.href = `${API_BASE}/download-template`;
-        resDiv.innerHTML = '<div class="response success">✅ Template download started!</div>';
-      } catch (e) { resDiv.innerHTML = `<div class="response error">❌ ${e.message}</div>`; }
-    }
-
-    async function uploadTestCases() {
-      const fileInput = document.getElementById('uploadFile');
-      const org = document.getElementById('org').value.trim();
-      const project = document.getElementById('project').value.trim();
-      const pat = document.getElementById('pat').value.trim();
-      const planName = document.getElementById('planName').value.trim();
-      const suiteName = document.getElementById('suiteName').value.trim();
-      const resDiv = document.getElementById('uploadResponse');
-      if (!fileInput.files[0] || !org || !project || !pat || !planName || !suiteName)
-        return resDiv.innerHTML = '<div class="response error">Please fill all required fields</div>';
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-      formData.append('org', org);
-      formData.append('project', project);
-      formData.append('pat', pat);
-      formData.append('plan_name', planName);
-      formData.append('suite_name', suiteName);
-      try {
-        resDiv.innerHTML = '<div class="response info">Uploading to Azure DevOps...</div>';
-        const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
-        const data = await res.json();
-        resDiv.innerHTML = `<div class="response ${data.status === 'success' ? 'success' : 'error'}">${data.status === 'success' ? '✅ Upload Complete' : '⚠️ Upload Error'}<br>Uploaded: ${data.uploaded_count || 0} | Failed: ${data.failed_count || 0}</div>`;
-      } catch (e) { resDiv.innerHTML = `<div class="response error">❌ ${e.message}</div>`; }
-    }
-
-    // ── Agentic Flow ───────────────────────────────────────────────────────
     async function runAgenticFlow() {
       const storyId       = document.getElementById('af-storyId').value.trim();
-      const org           = 'exelontfs';
-      const project       = 'Gen AI Platform';
       const pat           = document.getElementById('af-pat').value.trim();
       const planOverride  = document.getElementById('af-planOverride').value.trim();
       const suiteOverride = document.getElementById('af-suiteOverride').value.trim();
@@ -442,10 +244,8 @@
       }
 
       btn.disabled = true;
-
-      // ── Step 1: show log box immediately ──────────────────────────────────
       resDiv.innerHTML = `
-        <div class="log-box-wrap" id="af-logWrap">
+        <div class="log-box-wrap">
           <div class="log-box-header">
             <span><span class="log-dot" id="af-logDot"></span>Live Log — Story #${storyId}</span>
             <span id="af-logStatus" style="font-size:11px;color:#93c5fd;">Running…</span>
@@ -461,27 +261,25 @@
       function appendLog(text) {
         const line = document.createElement('span');
         line.className = 'log-line';
-        // Colour-code by leading emoji/keyword
-        if (/^✅|^✔|^☁️.*complete/i.test(text))   line.classList.add('ok');
-        else if (/^❌|error|failed/i.test(text))   line.classList.add('err');
-        else if (/^⚠️|warn/i.test(text))           line.classList.add('warn');
-        else if (/^🔗|^⚡|^📋|^🤖|^🔍|^☁️|^📁|^📊|^🧠/.test(text)) line.classList.add('info');
+        if      (/^✅|^✔|^☁️.*complete/i.test(text)) line.classList.add('ok');
+        else if (/^❌|error|failed/i.test(text))      line.classList.add('err');
+        else if (/^⚠️|warn/i.test(text))              line.classList.add('warn');
+        else if (/^🔗|^⚡|^📋|^🤖|^🔍|^☁️|^📁|^🧠/.test(text)) line.classList.add('info');
         line.textContent = text;
         logBox.appendChild(line);
         logBox.appendChild(document.createElement('br'));
         logBox.scrollTop = logBox.scrollHeight;
       }
 
-      // ── Step 2: POST to start the job ─────────────────────────────────────
+      // Start job
       let jobId;
       try {
         const r = await fetch(`${API_BASE}/agentic_flow`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            story_id: storyId, org, project, pat,
-            plan_name_override:  planOverride  || "",
-            suite_name_override: suiteOverride || "",
+            story_id: storyId, org: 'exelontfs', project: 'Gen AI Platform', pat,
+            plan_name_override: planOverride, suite_name_override: suiteOverride,
           }),
         });
         const d = await r.json();
@@ -497,74 +295,44 @@
         return;
       }
 
-      // ── Step 3: open SSE stream for live logs ─────────────────────────────
+      // Stream logs
       const es = new EventSource(`${API_BASE}/agentic_flow_logs/${jobId}`);
 
-      es.onmessage = async (event) => {
-        const raw = event.data;
-
+      es.onmessage = async ({ data: raw }) => {
         if (raw.startsWith('__RESULT__')) {
-          // ── Flow finished successfully ─────────────────────────────────
           es.close();
           logDot.classList.add('done');
           logStatus.textContent = '✅ Complete';
           logStatus.style.color = '#86efac';
           appendLog('─────────────────────────────────────────');
 
-          let data;
-          try { data = JSON.parse(raw.slice('__RESULT__'.length)); }
-          catch { data = null; }
-
-          if (!data) return;
-
+          const data = JSON.parse(raw.slice('__RESULT__'.length));
           const failBadge = data.failed_count > 0
-            ? `<span style="color:#842029;font-size:13px;margin-left:8px;">⚠️ ${data.failed_count} failed</span>`
-            : '';
+            ? `<span style="color:#842029;font-size:13px;margin-left:8px;">⚠️ ${data.failed_count} failed</span>` : '';
 
           document.getElementById('af-resultArea').innerHTML = `
             <div class="af-summary">
               <div class="af-summary-header">✅ Agentic Flow Complete — Story #${data.story_id}</div>
               <div class="af-summary-body">
                 <div class="af-summary-grid">
-                  <div class="af-stat">
-                    <div class="af-stat-value">${data.generated_count}</div>
-                    <div class="af-stat-label">Test Cases Generated</div>
-                  </div>
-                  <div class="af-stat">
-                    <div class="af-stat-value" style="color:#1c602b;">${data.uploaded_count}</div>
-                    <div class="af-stat-label">Uploaded to ADO${failBadge}</div>
-                  </div>
+                  <div class="af-stat"><div class="af-stat-value">${data.generated_count}</div><div class="af-stat-label">Test Cases Generated</div></div>
+                  <div class="af-stat"><div class="af-stat-value" style="color:#1c602b;">${data.uploaded_count}</div><div class="af-stat-label">Uploaded to ADO${failBadge}</div></div>
                 </div>
-                <div class="af-detail-row">
-                  <span class="af-detail-label">Story</span>
-                  <span class="af-detail-value">${data.story_title}</span>
-                </div>
-                <div class="af-detail-row">
-                  <span class="af-detail-label">Test Plan</span>
-                  <span class="af-detail-value">${data.plan_name}</span>
-                </div>
-                <div class="af-detail-row">
-                  <span class="af-detail-label">Suite</span>
-                  <span class="af-detail-value">${data.suite_name}</span>
-                </div>
-                <div class="af-detail-row">
-                  <span class="af-detail-label">Output File</span>
-                  <span class="af-detail-value">${data.filename}</span>
-                </div>
+                <div class="af-detail-row"><span class="af-detail-label">Story</span><span class="af-detail-value">${data.story_title}</span></div>
+                <div class="af-detail-row"><span class="af-detail-label">Test Plan</span><span class="af-detail-value">${data.plan_name}</span></div>
+                <div class="af-detail-row"><span class="af-detail-label">Suite</span><span class="af-detail-value">${data.suite_name}</span></div>
+                <div class="af-detail-row"><span class="af-detail-label">Output File</span><span class="af-detail-value">${data.filename}</span></div>
                 <div style="margin-top:14px;">
-                  <button onclick="window.location.href='${API_BASE}/download?filename=${encodeURIComponent(data.filename)}'">
-                    ⬇️ Download Generated TCS
-                  </button>
+                  <button onclick="window.location.href='${API_BASE}/download?filename=${encodeURIComponent(data.filename)}'">⬇️ Download Generated TCS</button>
                 </div>
                 <div id="af-tcContainer" style="margin-top:4px;"></div>
               </div>
             </div>`;
 
-          await fetchAndShowTestCases(data.filename, 'af-tcContainer');
+          await fetchAndShowTestCases(data.filename);
           btn.disabled = false;
 
         } else if (raw.startsWith('__ERROR__')) {
-          // ── Flow finished with error ───────────────────────────────────
           es.close();
           logDot.classList.add('done');
           logStatus.textContent = '❌ Failed';
@@ -573,9 +341,7 @@
           document.getElementById('af-resultArea').innerHTML =
             `<div class="response error">❌ ${raw.slice('__ERROR__'.length)}</div>`;
           btn.disabled = false;
-
         } else {
-          // ── Regular log line ──────────────────────────────────────────
           appendLog(raw);
         }
       };
