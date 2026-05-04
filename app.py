@@ -11,7 +11,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 import mainframe as mf
-from mainframe import agentic_flow
+from mainframe import agentic_flow, agentic_reference, agentic_clone
 
 app = Flask(__name__)
 CORS(app)
@@ -24,19 +24,7 @@ def _err(msg, code=400):
     return jsonify({"status": "error", "message": msg}), code
 
 
-@app.route("/agentic_flow", methods=["POST"])
-def route_agentic_flow():
-    d                   = request.get_json() or {}
-    story_id            = str(d.get("story_id", "")).strip()
-    org                 = d.get("org", "").strip()
-    project             = d.get("project", "").strip()
-    pat                 = d.get("pat", "").strip()
-    plan_name_override  = d.get("plan_name_override",  "").strip() or None
-    suite_name_override = d.get("suite_name_override", "").strip() or None
-
-    if not all([story_id, org, project, pat]):
-        return _err("story_id, org, project, and pat are required")
-
+def _start_job(fn, **kwargs) -> str:
     job_id = str(uuid.uuid4())
     q      = queue.Queue()
     _jobs[job_id] = {"queue": q, "result": None, "error": None}
@@ -44,11 +32,7 @@ def route_agentic_flow():
     def _run():
         mf.set_log_queue(q)
         try:
-            _jobs[job_id]["result"] = agentic_flow(
-                story_id, org, project, pat,
-                plan_name_override=plan_name_override,
-                suite_name_override=suite_name_override,
-            )
+            _jobs[job_id]["result"] = fn(**kwargs)
         except Exception as e:
             _jobs[job_id]["error"] = str(e)
         finally:
@@ -56,7 +40,55 @@ def route_agentic_flow():
             q.put(None)
 
     threading.Thread(target=_run, daemon=True).start()
-    return jsonify({"status": "started", "job_id": job_id})
+    return job_id
+
+
+def _base_params(d: dict) -> dict:
+    """Extract and validate common params shared by all three endpoints."""
+    return {
+        "story_id":            str(d.get("story_id", "")).strip(),
+        "org":                 d.get("org", "").strip(),
+        "project":             d.get("project", "").strip(),
+        "pat":                 d.get("pat", "").strip(),
+        "plan_name_override":  d.get("plan_name_override",  "").strip() or None,
+        "suite_name_override": d.get("suite_name_override", "").strip() or None,
+    }
+
+
+def _suite_params(d: dict) -> dict:
+    return {
+        "ref_plan_id":  str(d.get("ref_plan_id",  "")).strip(),
+        "ref_suite_id": str(d.get("ref_suite_id", "")).strip(),
+    }
+
+
+@app.route("/agentic_flow", methods=["POST"])
+def route_agentic_flow():
+    d      = request.get_json() or {}
+    params = _base_params(d)
+    if not all([params["story_id"], params["org"], params["project"], params["pat"]]):
+        return _err("story_id, org, project, and pat are required")
+    return jsonify({"status": "started", "job_id": _start_job(agentic_flow, **params)})
+
+
+@app.route("/agentic_reference", methods=["POST"])
+def route_agentic_reference():
+    d      = request.get_json() or {}
+    params = {**_base_params(d), **_suite_params(d)}
+    if not all([params["story_id"], params["org"], params["project"], params["pat"],
+                params["ref_plan_id"], params["ref_suite_id"]]):
+        return _err("story_id, org, project, pat, ref_plan_id, and ref_suite_id are required")
+    return jsonify({"status": "started", "job_id": _start_job(agentic_reference, **params)})
+
+
+@app.route("/agentic_clone", methods=["POST"])
+def route_agentic_clone():
+    d      = request.get_json() or {}
+    params = {**_base_params(d), **_suite_params(d)}
+    if not all([params["story_id"], params["org"], params["project"], params["pat"],
+                params["ref_plan_id"], params["ref_suite_id"]]):
+        return _err("story_id, org, project, pat, ref_plan_id, and ref_suite_id are required")
+    return jsonify({"status": "started", "job_id": _start_job(agentic_clone, **params)})
 
 
 @app.route("/agentic_flow_logs/<job_id>", methods=["GET"])

@@ -1,5 +1,15 @@
 You are a QA Review Lead. Your only job is to filter the test cases below — remove duplicates, redundant, impractical, or illogical entries.
 
+Product context:
+- Knowledge Base: Central document store CSRs search for customer support information.
+- Email Assist: Helps CSRs generate email replies by pulling templates from the Knowledge Base and auto-filling dynamic placeholders (e.g. customer name).
+- Call Assist: Transcribes customer calls in real-time and generates a summary for the CSR afterward.
+
+User Story: {user_story}
+
+Acceptance Criteria:
+{acceptance_criteria}
+
 Keep only test cases that:
 - Are accurate and directly trace to the story/acceptance criteria.
 - Add distinct value (no near-duplicates).

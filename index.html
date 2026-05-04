@@ -49,13 +49,15 @@
     input[type="text"] {
       width: 100%; padding: 10px; border: 1px solid #c8d8f7;
       border-radius: 10px; font-size: 14px; margin-bottom: 12px; background: #fff;
+      transition: opacity 0.2s;
     }
+    input[type="text"]:disabled { background: #f0f0f0; opacity: 0.55; cursor: not-allowed; }
     .form-group { margin-bottom: 16px; }
     label { display: block; margin-bottom: 6px; font-weight: 500; color: #444; }
     .optional-tag {
       font-size: 11px; font-weight: 500; color: #6b80a8; background: #eef3ff;
       border: 1px solid #c8d8f7; border-radius: 5px; padding: 1px 7px; margin-left: 7px;
-      vertical-align: middle; letter-spacing: 0.03em;
+      vertical-align: middle;
     }
     .response { margin-top: 14px; padding: 12px; border-radius: 10px; font-size: 14px; }
     .success { background: #dff6e0; border: 1px solid #b8e1b4; color: #1c602b; }
@@ -67,6 +69,8 @@
     .table-container { max-height: 500px; overflow-y: auto; border: 1px solid #dde5f1; border-radius: 10px; margin-top: 10px; }
     .ado-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
     @media (max-width: 600px) { .ado-grid { grid-template-columns: 1fr; } }
+
+    /* Override group */
     .override-group {
       background: #fffbf0; border: 1px solid #f0dfa0; border-radius: 12px;
       padding: 16px 16px 4px; margin-bottom: 16px;
@@ -76,6 +80,45 @@
       margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
     }
     .override-group-title::before { content: '⚙️'; }
+
+    /* Suite mode selector */
+    .suite-mode-group {
+      border: 1px solid #c8d8f7; border-radius: 12px;
+      overflow: hidden; margin-bottom: 16px;
+    }
+    .suite-mode-header {
+      background: #f3f7ff; padding: 12px 16px;
+      font-size: 13px; font-weight: 600; color: #00163a;
+      border-bottom: 1px solid #e1e9ff;
+    }
+    .suite-mode-options {
+      display: grid; grid-template-columns: 1fr 1fr;
+    }
+    .suite-mode-option {
+      padding: 14px 16px; cursor: pointer;
+      border-right: 1px solid #e1e9ff; transition: background 0.15s;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .suite-mode-option:last-child { border-right: none; }
+    .suite-mode-option:hover:not(.disabled) { background: #eaf0ff; }
+    .suite-mode-option.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+    .suite-mode-option input[type="checkbox"] {
+      width: 15px; height: 15px; margin-top: 2px; flex-shrink: 0; cursor: pointer;
+    }
+    .suite-mode-option-body { display: flex; flex-direction: column; gap: 2px; }
+    .suite-mode-option-title { font-size: 13px; font-weight: 600; color: #00163a; }
+    .suite-mode-option-desc  { font-size: 12px; color: #666; line-height: 1.4; }
+    .suite-fields {
+      padding: 14px 16px 2px; background: #f8faff;
+      border-top: 1px solid #e1e9ff; display: none;
+    }
+    .suite-fields.active { display: block; }
+    .suite-fields-label {
+      font-size: 12px; font-weight: 600; color: #6b80a8;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
     /* Log box */
     .log-box-wrap { margin-top: 18px; border-radius: 12px; overflow: hidden; border: 1px solid #2a3a5c; }
     .log-box-header {
@@ -99,6 +142,7 @@
     .log-line.err  { color: #fca5a5; background: transparent; }
     .log-line.warn { color: #fde68a; background: transparent; }
     .log-line.info { color: #93c5fd; background: transparent; }
+
     /* Summary card */
     .af-summary { margin-top: 20px; border: 1px solid #b8e1b4; border-radius: 12px; overflow: hidden; }
     .af-summary-header { background: #1c602b; color: white; padding: 12px 18px; font-size: 15px; font-weight: 600; }
@@ -120,7 +164,7 @@
 </head>
 <body>
   <header>
-    <img src="data:image/png;base64,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" alt="Company Logo">
+    <img src="<img src here>" alt="Company Logo">
     <h1>AI-Powered Functional Test Case Synthesizer</h1>
   </header>
 
@@ -136,10 +180,11 @@
           <li>Enter your <strong>ADO User Story ID</strong> and <strong>PAT Token</strong>.</li>
           <li>Optionally override the auto-generated <strong>Test Plan</strong> or <strong>Suite</strong> name — leave blank to use defaults.</li>
         </ul>
-        <h4 style="font-size:1.15em;margin-top:20px;margin-bottom:10px;">⚡ Step 2: Run Agentic Flow</h4>
+        <h4 style="font-size:1.15em;margin-top:20px;margin-bottom:10px;">⚡ Step 2: Choose a Mode &amp; Run</h4>
         <ul style="margin-left:20px;margin-bottom:20px;line-height:1.8;">
-          <li>Click <strong>Run Agentic Flow</strong> — the tool fetches the story, comments, and attachments from ADO automatically.</li>
-          <li>Two AI agents generate and review test cases for quality and redundancy.</li>
+          <li><strong>Standard:</strong> AI generates test cases fresh from the story details.</li>
+          <li><strong>Reference:</strong> Provide a reference test plan and suite — AI uses those existing TCs as stylistic guidance, then generates and reviews new ones.</li>
+          <li><strong>Clone:</strong> Same as Reference but skips the review agent and uploads directly — best for fast duplication with a different prompt style.</li>
           <li>Watch progress in real time via the <strong>Live Log</strong>.</li>
         </ul>
         <h4 style="font-size:1.15em;margin-top:20px;margin-bottom:10px;">☁️ Step 3: Review &amp; Download</h4>
@@ -154,9 +199,9 @@
       <summary>⚡ Agentic Flow — Auto Generate &amp; Upload</summary>
       <div class="section-content">
         <p style="margin-bottom:20px;color:#555;font-size:14px;line-height:1.6;">
-          Provide a single ADO Story ID and PAT — the tool will fetch the story, generate test cases
-          via two AI agents, and upload them to Azure DevOps in one click.
+          Provide a single ADO Story ID and PAT — the tool fetches the story, generates test cases via AI agents, and uploads them to Azure DevOps in one click.
         </p>
+
         <div class="ado-grid">
           <div class="form-group">
             <label>ADO User Story ID</label>
@@ -167,19 +212,55 @@
             <input type="text" id="af-pat" placeholder="Your Azure DevOps PAT">
           </div>
         </div>
+
         <div class="override-group">
           <div class="override-group-title">Override Test Plan / Suite (Optional)</div>
           <div class="ado-grid">
             <div class="form-group">
               <label>Test Plan Name <span class="optional-tag">optional</span></label>
-              <input type="text" id="af-planOverride" placeholder="Leave blank to auto-generate from story title" style="margin-bottom:0;">
+              <input type="text" id="af-planOverride" placeholder="Leave blank to auto-generate" style="margin-bottom:0;">
             </div>
             <div class="form-group">
               <label>Test Suite Name <span class="optional-tag">optional</span></label>
-              <input type="text" id="af-suiteOverride" placeholder="Leave blank to use default 'TCS'" style="margin-bottom:0;">
+              <input type="text" id="af-suiteOverride" placeholder="Leave blank to use 'TCS'" style="margin-bottom:0;">
             </div>
           </div>
         </div>
+
+        <!-- Suite mode selector -->
+        <div class="suite-mode-group">
+          <div class="suite-mode-header">Generation Mode</div>
+          <div class="suite-mode-options">
+            <div class="suite-mode-option" id="opt-reference">
+              <input type="checkbox" id="cb-reference" onchange="onModeChange('reference')">
+              <div class="suite-mode-option-body">
+                <span class="suite-mode-option-title">📚 Use Reference Suite</span>
+                <span class="suite-mode-option-desc">AI uses an existing test suite as stylistic guidance, then generates and reviews new test cases.</span>
+              </div>
+            </div>
+            <div class="suite-mode-option" id="opt-clone">
+              <input type="checkbox" id="cb-clone" onchange="onModeChange('clone')">
+              <div class="suite-mode-option-body">
+                <span class="suite-mode-option-title">🔁 Clone Suite</span>
+                <span class="suite-mode-option-desc">Same as Reference but skips the review agent — uploads directly. Best for fast duplication.</span>
+              </div>
+            </div>
+          </div>
+          <div class="suite-fields" id="suite-fields">
+            <div class="suite-fields-label">Reference / Clone Suite Details</div>
+            <div class="ado-grid">
+              <div class="form-group">
+                <label>Test Plan ID</label>
+                <input type="text" id="af-refPlanId" placeholder="e.g., 123" style="margin-bottom:0;">
+              </div>
+              <div class="form-group">
+                <label>Test Suite ID</label>
+                <input type="text" id="af-refSuiteId" placeholder="e.g., 456" style="margin-bottom:0;">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <button id="af-runBtn" onclick="runAgenticFlow()">⚡ Run Agentic Flow</button>
         <div id="af-response"></div>
       </div>
@@ -190,6 +271,25 @@
   <script>
     const API_BASE = 'http://localhost:5000';
 
+    // ── Mode toggle ───────────────────────────────────────────────────────────
+    function onModeChange(selected) {
+      const other = selected === 'reference' ? 'clone' : 'reference';
+      const cbSel   = document.getElementById(`cb-${selected}`);
+      const cbOther = document.getElementById(`cb-${other}`);
+      const optOther = document.getElementById(`opt-${other}`);
+      const fields   = document.getElementById('suite-fields');
+
+      if (cbSel.checked) {
+        cbOther.checked = false;
+        optOther.classList.add('disabled');
+        fields.classList.add('active');
+      } else {
+        optOther.classList.remove('disabled');
+        fields.classList.remove('active');
+      }
+    }
+
+    // ── TC table renderer ─────────────────────────────────────────────────────
     async function fetchAndShowTestCases(filename) {
       const container = document.getElementById('af-tcContainer');
       container.innerHTML = '<div class="response info">📄 Loading test cases…</div>';
@@ -230,11 +330,16 @@
       }
     }
 
+    // ── Main flow ─────────────────────────────────────────────────────────────
     async function runAgenticFlow() {
       const storyId       = document.getElementById('af-storyId').value.trim();
       const pat           = document.getElementById('af-pat').value.trim();
       const planOverride  = document.getElementById('af-planOverride').value.trim();
       const suiteOverride = document.getElementById('af-suiteOverride').value.trim();
+      const useReference  = document.getElementById('cb-reference').checked;
+      const useClone      = document.getElementById('cb-clone').checked;
+      const refPlanId     = document.getElementById('af-refPlanId').value.trim();
+      const refSuiteId    = document.getElementById('af-refSuiteId').value.trim();
       const resDiv        = document.getElementById('af-response');
       const btn           = document.getElementById('af-runBtn');
 
@@ -242,12 +347,17 @@
         resDiv.innerHTML = '<div class="response error">Please fill in Story ID and PAT Token</div>';
         return;
       }
+      if ((useReference || useClone) && (!refPlanId || !refSuiteId)) {
+        resDiv.innerHTML = '<div class="response error">Please fill in both Test Plan ID and Test Suite ID</div>';
+        return;
+      }
 
       btn.disabled = true;
+      const modeLabel = useReference ? 'Reference' : useClone ? 'Clone' : 'Standard';
       resDiv.innerHTML = `
         <div class="log-box-wrap">
           <div class="log-box-header">
-            <span><span class="log-dot" id="af-logDot"></span>Live Log — Story #${storyId}</span>
+            <span><span class="log-dot" id="af-logDot"></span>Live Log — Story #${storyId} (${modeLabel})</span>
             <span id="af-logStatus" style="font-size:11px;color:#93c5fd;">Running…</span>
           </div>
           <div class="log-box" id="af-logBox"></div>
@@ -264,23 +374,26 @@
         if      (/^✅|^✔|^☁️.*complete/i.test(text)) line.classList.add('ok');
         else if (/^❌|error|failed/i.test(text))      line.classList.add('err');
         else if (/^⚠️|warn/i.test(text))              line.classList.add('warn');
-        else if (/^🔗|^⚡|^📋|^🤖|^🔍|^☁️|^📁|^🧠/.test(text)) line.classList.add('info');
+        else if (/^🔗|^⚡|^📋|^🤖|^🔍|^☁️|^📁|^🧠|^📂|^📎/.test(text)) line.classList.add('info');
         line.textContent = text;
         logBox.appendChild(line);
         logBox.appendChild(document.createElement('br'));
         logBox.scrollTop = logBox.scrollHeight;
       }
 
-      // Start job
+      // Determine endpoint and build payload
+      const endpoint = useReference ? 'agentic_reference' : useClone ? 'agentic_clone' : 'agentic_flow';
+      const payload  = {
+        story_id: storyId, org: 'exelontfs', project: 'Gen AI Platform', pat,
+        plan_name_override: planOverride, suite_name_override: suiteOverride,
+        ...((useReference || useClone) && { ref_plan_id: refPlanId, ref_suite_id: refSuiteId }),
+      };
+
       let jobId;
       try {
-        const r = await fetch(`${API_BASE}/agentic_flow`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            story_id: storyId, org: 'rSTARTechnologies', project: 'AI Enablement Program', pat,
-            plan_name_override: planOverride, suite_name_override: suiteOverride,
-          }),
+        const r = await fetch(`${API_BASE}/${endpoint}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
         const d = await r.json();
         if (d.status !== 'started') {
@@ -295,7 +408,6 @@
         return;
       }
 
-      // Stream logs
       const es = new EventSource(`${API_BASE}/agentic_flow_logs/${jobId}`);
 
       es.onmessage = async ({ data: raw }) => {
@@ -312,7 +424,7 @@
 
           document.getElementById('af-resultArea').innerHTML = `
             <div class="af-summary">
-              <div class="af-summary-header">✅ Agentic Flow Complete — Story #${data.story_id}</div>
+              <div class="af-summary-header">✅ ${modeLabel} Flow Complete — Story #${data.story_id}</div>
               <div class="af-summary-body">
                 <div class="af-summary-grid">
                   <div class="af-stat"><div class="af-stat-value">${data.generated_count}</div><div class="af-stat-label">Test Cases Generated</div></div>
@@ -321,6 +433,7 @@
                 <div class="af-detail-row"><span class="af-detail-label">Story</span><span class="af-detail-value">${data.story_title}</span></div>
                 <div class="af-detail-row"><span class="af-detail-label">Test Plan</span><span class="af-detail-value">${data.plan_name}</span></div>
                 <div class="af-detail-row"><span class="af-detail-label">Suite</span><span class="af-detail-value">${data.suite_name}</span></div>
+                <div class="af-detail-row"><span class="af-detail-label">Mode</span><span class="af-detail-value">${modeLabel}</span></div>
                 <div class="af-detail-row"><span class="af-detail-label">Output File</span><span class="af-detail-value">${data.filename}</span></div>
                 <div style="margin-top:14px;">
                   <button onclick="window.location.href='${API_BASE}/download?filename=${encodeURIComponent(data.filename)}'">⬇️ Download Generated TCS</button>
