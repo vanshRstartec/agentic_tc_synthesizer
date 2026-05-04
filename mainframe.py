@@ -15,6 +15,21 @@ openai.api_base    = os.getenv("AZURE_OPENAI_ENDPOINT")
 openai.api_version = "2024-02-15-preview"
 openai.api_key     = os.getenv("AZURE_OPENAI_KEY")
 
+_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+
+# Fail fast with a clear message rather than a cryptic OpenAI error later
+_REQUIRED_ENV = {
+    "AZURE_OPENAI_ENDPOINT":   openai.api_base,
+    "AZURE_OPENAI_KEY":        openai.api_key,
+    "AZURE_OPENAI_DEPLOYMENT": _DEPLOYMENT,
+}
+_missing = [k for k, v in _REQUIRED_ENV.items() if not v]
+if _missing:
+    raise EnvironmentError(
+        f"Missing required environment variable(s): {', '.join(_missing)}\n"
+        f"Check your .env file is present and contains these keys."
+    )
+
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 # ── Live log streaming ────────────────────────────────────────────────────────
@@ -41,7 +56,7 @@ def _strip_html(text: str) -> str:
 
 def _llm(messages: list, temperature: float = 0.3) -> str:
     r = openai.ChatCompletion.create(
-        engine=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
+        engine=_DEPLOYMENT,
         messages=messages,
         temperature=temperature,
     )
@@ -145,6 +160,7 @@ def _agent1_generate(user_story: str, ac_text: str, extra_context: str = "",
         extra_context=extra_context,
         comments=comments,
         attachments_text=attachments_text,
+        figma_instruction="",
     )
     return _llm([
         {"role": "system", "content": "You are a QA engineer. Generate test cases in the EXACT format requested."},
