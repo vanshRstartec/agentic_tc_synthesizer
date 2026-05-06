@@ -10,6 +10,7 @@ User Story:
 {user_story}
 
 Acceptance Criteria:
+Acceptance Criteria:
 {acceptance_criteria}
 
 {extra_context}
@@ -31,7 +32,7 @@ CLONING RULES
 OUTPUT FORMAT (repeat per cloned case, separated by a line containing only ---)
 
 Test Type: [Positive | Negative | Edge Case]
-Title: [cloned title with new-story substitutions]
+Title: [cloned title with new-story substitutions, it should not say that it's cloned]
 Priority: [1-4]
 Steps:
 ```
