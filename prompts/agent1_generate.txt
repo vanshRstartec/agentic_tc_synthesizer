@@ -27,7 +27,7 @@ AUTHORING RULES
 5. Use reference test cases only to mirror tone, granularity, and step phrasing — not to copy scope.
 
 WRITING STYLE
-- Titles: concise, scenario-specific, action-oriented (e.g., "Reject email generation when KB template is missing").
+- Titles: concise, scenario-specific, action-oriented (e.g., "Reject email generation when KB template is missing"). Also try to add the OPCO name (BGE/PECO/PHI) if it adds clarity.
 - Steps: imperative, atomic, observable. One action → one expected result.
 - Language: precise and terse. No filler ("the user should be able to…"), no restating the AC, no hedging.
 - Priority: 1 (critical path) → 4 (cosmetic/edge), assigned by business impact.
