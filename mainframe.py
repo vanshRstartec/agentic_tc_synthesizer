@@ -407,8 +407,18 @@ class ADOTestManager:
         return requests.get(f"{self.base}/{path}", headers=self.h, auth=self.auth).json()
 
     def _post(self, path: str, payload: dict, ct: str = "application/json") -> dict:
-        return requests.post(f"{self.base}/{path}", headers={"Content-Type": ct},
-                             auth=self.auth, json=payload).json()
+        r = requests.post(
+            f"{self.base}/{path}",
+            headers={"Content-Type": ct},
+            auth=self.auth,
+            json=payload,
+        )
+        if not r.ok:
+            raise Exception(
+                f"ADO POST failed ({r.status_code}) on /{path.split('?')[0]}: "
+                f"{r.text[:300]}"
+            )
+        return r.json()
 
     def _ensure_plan(self, name: str) -> int:
         plans = self._get("testplan/plans?api-version=7.0").get("value", [])

@@ -35,7 +35,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ── Job registry ──────────────────────────────────────────────────────────────
 _jobs: dict[str, dict] = {}
-_LOG_TIMEOUT_S = 120
+_LOG_TIMEOUT_S = 1200
 
 
 def _err(msg: str, code: int = 400):
